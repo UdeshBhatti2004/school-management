@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-slate-50 text-ink-800 antialiased;
+  font-feature-settings: 'cv11', 'ss01';
+}
+
+/* Quiet, consistent scrollbars */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full border-2 border-solid border-transparent bg-clip-content;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Visible keyboard focus */
+:focus-visible {
+  outline: 2px solid theme('colors.brand.500');
+  outline-offset: 2px;
+}

@@ -1,0 +1,225 @@
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Plus, Video, Trash2, Play, Clock, User } from 'lucide-react';
+import toast from 'react-hot-toast';
+import api from '../../api/client';
+import { useFetch } from '../../lib/useFetch';
+import { PageHeader } from '../../components/ui/blocks';
+import { Button, Input, Label, Select, Textarea, Card, Badge, Spinner, EmptyState } from '../../components/ui/primitives';
+import Modal from '../../components/ui/Modal';
+import FileUpload from '../../components/ui/FileUpload';
+
+// Build an embeddable URL from common providers; fall back to raw link
+function toEmbed(url) {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes('youtube.com')) {
+      const id = u.searchParams.get('v');
+      if (id) return `https://www.youtube.com/embed/${id}`;
+    }
+    if (u.hostname === 'youtu.be') {
+      return `https://www.youtube.com/embed${u.pathname}`;
+    }
+    if (u.hostname.includes('vimeo.com')) {
+      const id = u.pathname.split('/').filter(Boolean)[0];
+      if (id) return `https://player.vimeo.com/video/${id}`;
+    }
+  } catch {
+    /* not a parseable URL */
+  }
+  return null;
+}
+
+const emptyForm = { title: '', description: '', subject: '', classRoom: '', videoUrl: '', durationMinutes: '', sourceType: 'link', publicId: '' };
+
+export default function LecturesView({ manage = false }) {
+  const { data: lectures, loading, refetch } = useFetch('/lectures', []);
+  const { data: classes } = useFetch('/classes', []);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [mode, setMode] = useState('link'); // 'link' | 'upload'
+  const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [playing, setPlaying] = useState(null);
+
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    if (!form.videoUrl) return toast.error('Add a video link or upload a file');
+    setSaving(true);
+    try {
+      await api.post('/lectures', {
+        ...form,
+        durationMinutes: form.durationMinutes ? Number(form.durationMinutes) : 0,
+      });
+      toast.success('Lecture published');
+      setModalOpen(false);
+      setForm(emptyForm);
+      setMode('link');
+      refetch();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (l) => {
+    if (!confirm(`Delete "${l.title}"?`)) return;
+    try {
+      await api.delete(`/lectures/${l._id}`);
+      toast.success('Deleted');
+      refetch();
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  return (
+    <div>
+      <PageHeader
+        title="Lectures"
+        subtitle={manage ? 'Publish video lectures for your classes.' : 'Watch lectures shared by your teachers.'}
+        action={manage ? <Button onClick={() => setModalOpen(true)}><Plus size={16} /> New lecture</Button> : null}
+      />
+
+      {loading ? (
+        <div className="flex justify-center py-16"><Spinner className="h-6 w-6" /></div>
+      ) : (lectures || []).length === 0 ? (
+        <Card>
+          <EmptyState icon={Video} title="No lectures yet"
+            description={manage ? 'Add a video link and it will be available to the class.' : 'Your teachers haven\u2019t posted any lectures yet.'}
+            action={manage ? <Button onClick={() => setModalOpen(true)}><Plus size={16} /> New lecture</Button> : null} />
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {lectures.map((l, i) => (
+            <motion.div key={l._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: Math.min(i * 0.04, 0.3) }}>
+              <Card className="group flex h-full flex-col overflow-hidden">
+                <button onClick={() => setPlaying(l)} className="relative flex aspect-video items-center justify-center bg-ink-900">
+                  <div className="absolute inset-0 bg-gradient-to-br from-brand-700/30 to-ink-900" />
+                  <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-brand-700 shadow-soft transition-transform group-hover:scale-105">
+                    <Play size={20} className="ml-0.5" fill="currentColor" />
+                  </div>
+                </button>
+                <div className="flex flex-1 flex-col p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-semibold leading-snug text-ink-900">{l.title}</h3>
+                    {manage && (
+                      <button onClick={() => handleDelete(l)} className="rounded-lg p-1.5 text-ink-400 hover:bg-rose-50 hover:text-rose-600"><Trash2 size={14} /></button>
+                    )}
+                  </div>
+                  {l.description && <p className="mt-1 line-clamp-2 text-sm text-ink-500">{l.description}</p>}
+                  <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 pt-3 text-xs text-ink-400">
+                    {l.subject && <Badge tone="brand">{l.subject}</Badge>}
+                    <span className="flex items-center gap-1"><User size={12} /> {l.createdBy?.name}</span>
+                    {l.durationMinutes > 0 && <span className="flex items-center gap-1"><Clock size={12} /> {l.durationMinutes} min</span>}
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      {/* Create */}
+      {manage && (
+        <Modal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          title="New lecture"
+          maxWidth="max-w-xl"
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
+              <Button onClick={handleCreate} disabled={saving}>
+                {saving ? <Spinner className="h-4 w-4 border-white/40 border-t-white" /> : 'Publish'}
+              </Button>
+            </>
+          }
+        >
+          <form onSubmit={handleCreate} className="space-y-4">
+            <div>
+              <Label>Title</Label>
+              <Input value={form.title} onChange={set('title')} required />
+            </div>
+            <div>
+              <Label>Description</Label>
+              <Textarea rows={2} value={form.description} onChange={set('description')} />
+            </div>
+            <div>
+              <Label>Video source</Label>
+              <div className="mb-2 flex gap-2">
+                <button type="button" onClick={() => setMode('link')} className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium ${mode === 'link' ? 'border-brand-300 bg-brand-50 text-brand-700' : 'border-slate-200 text-ink-600'}`}>Paste link</button>
+                <button type="button" onClick={() => setMode('upload')} className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium ${mode === 'upload' ? 'border-brand-300 bg-brand-50 text-brand-700' : 'border-slate-200 text-ink-600'}`}>Upload video</button>
+              </div>
+              {mode === 'link' ? (
+                <>
+                  <Input value={form.sourceType === 'link' ? form.videoUrl : ''} onChange={(e) => setForm((f) => ({ ...f, videoUrl: e.target.value, sourceType: 'link', publicId: '' }))} placeholder="https://www.youtube.com/watch?v=…" />
+                  <p className="mt-1 text-xs text-ink-400">YouTube and Vimeo links embed automatically; any other link opens in a new tab.</p>
+                </>
+              ) : (
+                <FileUpload
+                  accept="video/*"
+                  label="Upload a video file"
+                  hint="MP4/WebM · stored on Cloudinary"
+                  value={form.sourceType === 'upload' && form.videoUrl ? { url: form.videoUrl, fileName: 'Uploaded video' } : null}
+                  onUploaded={(r) => setForm((f) => ({ ...f, videoUrl: r.url, sourceType: 'upload', publicId: r.publicId }))}
+                  onClear={() => setForm((f) => ({ ...f, videoUrl: '', sourceType: 'link', publicId: '' }))}
+                />
+              )}
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="col-span-2">
+                <Label>Class</Label>
+                <Select value={form.classRoom} onChange={set('classRoom')} required>
+                  <option value="">Select class</option>
+                  {(classes || []).map((c) => <option key={c._id} value={c._id}>{c.name} · {c.section}</option>)}
+                </Select>
+              </div>
+              <div>
+                <Label>Minutes</Label>
+                <Input type="number" value={form.durationMinutes} onChange={set('durationMinutes')} />
+              </div>
+            </div>
+            <div>
+              <Label>Subject</Label>
+              <Input value={form.subject} onChange={set('subject')} placeholder="Physics" />
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Player */}
+      <Modal open={!!playing} onClose={() => setPlaying(null)} title={playing?.title} maxWidth="max-w-3xl">
+        {playing && (
+          <div>
+            {playing.sourceType === 'upload' ? (
+              <div className="aspect-video overflow-hidden rounded-xl bg-ink-900">
+                <video src={playing.videoUrl} controls className="h-full w-full" />
+              </div>
+            ) : toEmbed(playing.videoUrl) ? (
+              <div className="aspect-video overflow-hidden rounded-xl bg-ink-900">
+                <iframe
+                  src={toEmbed(playing.videoUrl)}
+                  title={playing.title}
+                  className="h-full w-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            ) : (
+              <div className="rounded-xl bg-slate-50 p-6 text-center">
+                <p className="text-sm text-ink-500">This video can't be embedded here.</p>
+                <a href={playing.videoUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block">
+                  <Button size="sm">Open video in new tab</Button>
+                </a>
+              </div>
+            )}
+            {playing.description && <p className="mt-4 text-sm text-ink-600">{playing.description}</p>}
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
+}

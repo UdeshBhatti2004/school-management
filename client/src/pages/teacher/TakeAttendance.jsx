@@ -1,0 +1,169 @@
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { CalendarCheck, Check, X, Clock, Save } from 'lucide-react';
+import toast from 'react-hot-toast';
+import api from '../../api/client';
+import { useFetch } from '../../lib/useFetch';
+import { PageHeader } from '../../components/ui/blocks';
+import { Button, Input, Label, Select, Card, Spinner, EmptyState, Badge } from '../../components/ui/primitives';
+import { cn } from '../../lib/cn';
+
+const STATUSES = [
+  { key: 'present', label: 'Present', icon: Check, tone: 'bg-emerald-600' },
+  { key: 'late', label: 'Late', icon: Clock, tone: 'bg-amber-500' },
+  { key: 'absent', label: 'Absent', icon: X, tone: 'bg-rose-600' },
+];
+
+const todayStr = () => new Date().toISOString().slice(0, 10);
+
+export default function TakeAttendance() {
+  const { data: classes } = useFetch('/classes', []);
+  const [classId, setClassId] = useState('');
+  const [date, setDate] = useState(todayStr());
+  const [subject, setSubject] = useState('');
+  const [students, setStudents] = useState([]);
+  const [marks, setMarks] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Load roster + any existing sheet when class/date/subject changes
+  useEffect(() => {
+    if (!classId) {
+      setStudents([]);
+      return;
+    }
+    setLoading(true);
+    Promise.all([
+      api.get(`/classes/${classId}`),
+      api.get(`/attendance?classRoom=${classId}&date=${date}`),
+    ])
+      .then(([clsRes, attRes]) => {
+        const roster = clsRes.data.students || [];
+        setStudents(roster);
+        const existing = (attRes.data || []).find((s) => (s.subject || '') === subject);
+        const init = {};
+        roster.forEach((s) => {
+          const rec = existing?.records?.find((r) => (r.student._id || r.student) === s._id);
+          init[s._id] = rec?.status || 'present';
+        });
+        setMarks(init);
+      })
+      .catch((err) => toast.error(err.message))
+      .finally(() => setLoading(false));
+  }, [classId, date, subject]);
+
+  const setStatus = (studentId, status) => setMarks((m) => ({ ...m, [studentId]: status }));
+  const markAll = (status) => {
+    const next = {};
+    students.forEach((s) => (next[s._id] = status));
+    setMarks(next);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const records = students.map((s) => ({ student: s._id, status: marks[s._id] || 'present' }));
+      await api.post('/attendance', { classRoom: classId, date, subject, records });
+      toast.success('Attendance saved');
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const counts = students.reduce(
+    (acc, s) => {
+      acc[marks[s._id] || 'present'] += 1;
+      return acc;
+    },
+    { present: 0, late: 0, absent: 0 }
+  );
+
+  return (
+    <div>
+      <PageHeader title="Attendance" subtitle="Mark attendance for your class." />
+
+      <Card className="mb-5 p-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div>
+            <Label>Class</Label>
+            <Select value={classId} onChange={(e) => setClassId(e.target.value)}>
+              <option value="">Select a class</option>
+              {(classes || []).map((c) => <option key={c._id} value={c._id}>{c.name} · {c.section}</option>)}
+            </Select>
+          </div>
+          <div>
+            <Label>Date</Label>
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} max={todayStr()} />
+          </div>
+          <div>
+            <Label>Subject (optional)</Label>
+            <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Physics" />
+          </div>
+        </div>
+      </Card>
+
+      {!classId ? (
+        <Card><EmptyState icon={CalendarCheck} title="Pick a class" description="Choose a class above to load its students and start marking." /></Card>
+      ) : loading ? (
+        <div className="flex justify-center py-16"><Spinner className="h-6 w-6" /></div>
+      ) : students.length === 0 ? (
+        <Card><EmptyState icon={CalendarCheck} title="No students" description="This class has no students assigned yet." /></Card>
+      ) : (
+        <>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex gap-2">
+              <Badge tone="green">{counts.present} present</Badge>
+              <Badge tone="amber">{counts.late} late</Badge>
+              <Badge tone="rose">{counts.absent} absent</Badge>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="secondary" size="sm" onClick={() => markAll('present')}>Mark all present</Button>
+              <Button size="sm" onClick={save} disabled={saving}>
+                {saving ? <Spinner className="h-4 w-4 border-white/40 border-t-white" /> : <><Save size={15} /> Save</>}
+              </Button>
+            </div>
+          </div>
+
+          <Card className="divide-y divide-slate-100">
+            {students.map((s, i) => (
+              <motion.div
+                key={s._id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.2, delay: Math.min(i * 0.02, 0.2) }}
+                className="flex items-center gap-3 px-5 py-3"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-ink-700">
+                  {s.name?.[0]?.toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-ink-800">{s.name}</p>
+                  {s.rollNumber && <p className="text-xs text-ink-400">{s.rollNumber}</p>}
+                </div>
+                <div className="flex gap-1.5">
+                  {STATUSES.map((st) => {
+                    const active = (marks[s._id] || 'present') === st.key;
+                    return (
+                      <button
+                        key={st.key}
+                        onClick={() => setStatus(s._id, st.key)}
+                        className={cn(
+                          'flex h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-medium transition-colors',
+                          active ? `${st.tone} text-white` : 'bg-slate-100 text-ink-500 hover:bg-slate-200'
+                        )}
+                      >
+                        <st.icon size={13} /> <span className="hidden sm:inline">{st.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            ))}
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}
