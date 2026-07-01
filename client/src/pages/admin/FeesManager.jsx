@@ -1,34 +1,41 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Wallet, Trash2, IndianRupee, CheckCircle2, TrendingUp, Clock } from 'lucide-react';
+import { Plus, Wallet, Trash2, IndianRupee, CheckCircle2, TrendingUp, Clock, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../../api/client';
-import { useFetch } from '../../lib/useFetch';
+import { useGetFeesQuery, useGetFeeSummaryQuery, useCreateFeeMutation, useRecordPaymentMutation, useDeleteFeeMutation } from '../../features/fees/feeApi';
+import { useGetClassesQuery } from '../../features/classes/classApi';
+import { useGetUsersQuery } from '../../features/users/userApi';
 import { PageHeader, StatCard } from '../../components/ui/blocks';
 import { Button, Input, Label, Select, Card, Badge, Spinner, EmptyState } from '../../components/ui/primitives';
 import Modal from '../../components/ui/Modal';
+import { getErrMsg } from '../../lib/getErrMsg';
 
 const inr = (n) => '₹' + Number(n || 0).toLocaleString('en-IN');
 const fmt = (d) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 const statusTone = { paid: 'green', partial: 'amber', pending: 'slate' };
 
 export default function FeesManager() {
-  const { data: fees, loading, refetch } = useFetch('/fees', []);
-  const { data: summary, refetch: refetchSummary } = useFetch('/fees/summary', []);
-  const { data: classes } = useFetch('/classes', []);
-  const { data: students } = useFetch('/users?role=student', []);
+  const { data: fees, isLoading: loading } = useGetFeesQuery();
+  const { data: summary } = useGetFeeSummaryQuery();
+  const { data: classes } = useGetClassesQuery();
+  const { data: students } = useGetUsersQuery('student');
+  const [createFee] = useCreateFeeMutation();
+  const [recordPaymentMutation] = useRecordPaymentMutation();
+  const [deleteFee] = useDeleteFeeMutation();
 
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [target, setTarget] = useState('student'); // 'student' | 'class'
   const [form, setForm] = useState({ student: '', issueToClass: '', title: '', amount: '', dueDate: '', notes: '' });
 
+  // Mobile View Detail States
+  const [selectedFee, setSelectedFee] = useState(null);
+  const [viewOpen, setViewOpen] = useState(false);
+
   // payment modal
   const [payFor, setPayFor] = useState(null);
   const [payAmount, setPayAmount] = useState('');
   const [payMethod, setPayMethod] = useState('upi');
-
-  const reload = () => { refetch(); refetchSummary(); };
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -41,13 +48,12 @@ export default function FeesManager() {
         notes: form.notes,
         ...(target === 'class' ? { issueToClass: form.issueToClass } : { student: form.student }),
       };
-      await api.post('/fees', payload);
+      await createFee(payload).unwrap();
       toast.success('Fee issued');
       setOpen(false);
       setForm({ student: '', issueToClass: '', title: '', amount: '', dueDate: '', notes: '' });
-      reload();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrMsg(err));
     } finally {
       setSaving(false);
     }
@@ -61,23 +67,21 @@ export default function FeesManager() {
 
   const recordPayment = async () => {
     try {
-      await api.put(`/fees/${payFor._id}/pay`, { paidAmount: Number(payAmount), method: payMethod });
+      await recordPaymentMutation({ id: payFor._id, paidAmount: Number(payAmount), method: payMethod }).unwrap();
       toast.success('Payment recorded');
       setPayFor(null);
-      reload();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrMsg(err));
     }
   };
 
   const remove = async (fee) => {
     if (!confirm('Delete this fee record?')) return;
     try {
-      await api.delete(`/fees/${fee._id}`);
+      await deleteFee(fee._id).unwrap();
       toast.success('Deleted');
-      reload();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrMsg(err));
     }
   };
 
@@ -100,48 +104,97 @@ export default function FeesManager() {
           <EmptyState icon={Wallet} title="No fees issued" description="Issue a fee to a student or a whole class to get started."
             action={<Button onClick={() => setOpen(true)}><Plus size={16} /> Issue fee</Button>} />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-ink-400">
-                  <th className="px-5 py-3">Student</th>
-                  <th className="px-5 py-3">Fee</th>
-                  <th className="px-5 py-3">Amount</th>
-                  <th className="px-5 py-3">Due</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {fees.map((f, i) => (
-                  <motion.tr key={f._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2, delay: Math.min(i * 0.02, 0.2) }}
-                    className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60">
-                    <td className="px-5 py-3.5">
-                      <p className="font-medium text-ink-800">{f.student?.name}</p>
-                      <p className="text-xs text-ink-400">{f.student?.rollNumber}</p>
-                    </td>
-                    <td className="px-5 py-3.5 text-ink-600">{f.title}</td>
-                    <td className="px-5 py-3.5 font-medium text-ink-800">
-                      {inr(f.amount)}
-                      {f.paidAmount > 0 && f.status !== 'paid' && <span className="block text-xs font-normal text-emerald-600">{inr(f.paidAmount)} paid</span>}
-                    </td>
-                    <td className="px-5 py-3.5 text-ink-500">{fmt(f.dueDate)}</td>
-                    <td className="px-5 py-3.5"><Badge tone={statusTone[f.status]} className="capitalize">{f.status}</Badge></td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex justify-end gap-2">
-                        {f.status !== 'paid' && <Button size="sm" variant="secondary" onClick={() => openPay(f)}>Record payment</Button>}
-                        <button onClick={() => remove(f)} className="rounded-lg p-2 text-ink-400 hover:bg-rose-50 hover:text-rose-600"><Trash2 size={15} /></button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <>
+            {/* Desktop View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-ink-400">
+                    <th className="px-5 py-3">Student</th>
+                    <th className="px-5 py-3">Fee</th>
+                    <th className="px-5 py-3">Amount</th>
+                    <th className="px-5 py-3">Due</th>
+                    <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fees.map((f, i) => (
+                    <motion.tr key={f._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2, delay: Math.min(i * 0.02, 0.2) }}
+                      className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60">
+                      <td className="px-5 py-3.5">
+                        <p className="font-medium text-ink-800">{f.student?.name}</p>
+                        <p className="text-xs text-ink-400">{f.student?.rollNumber}</p>
+                      </td>
+                      <td className="px-5 py-3.5 text-ink-600">{f.title}</td>
+                      <td className="px-5 py-3.5 font-medium text-ink-800">
+                        {inr(f.amount)}
+                        {f.paidAmount > 0 && f.status !== 'paid' && <span className="block text-xs font-normal text-emerald-600">{inr(f.paidAmount)} paid</span>}
+                      </td>
+                      <td className="px-5 py-3.5 text-ink-500">{fmt(f.dueDate)}</td>
+                      <td className="px-5 py-3.5"><Badge tone={statusTone[f.status]} className="capitalize">{f.status}</Badge></td>
+                      {/* Replace the desktop actions td with this */}
+<td className="px-5 py-3.5 text-right whitespace-nowrap">
+  <div className="flex justify-end items-center gap-2">
+    {f.status !== 'paid' && (
+      <Button size="sm" variant="secondary" onClick={() => openPay(f)}>
+        Record payment
+      </Button>
+    )}
+    <button 
+      onClick={() => remove(f)} 
+      className="rounded-lg p-2 text-ink-400 hover:bg-rose-50 hover:text-rose-600"
+    >
+      <Trash2 size={15} />
+    </button>
+  </div>
+</td>
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile / Tablet Responsive View */}
+            <div className="divide-y divide-slate-100 md:hidden">
+              {fees.map((f) => (
+                <button
+                  key={f._id}
+                  className="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-slate-50"
+                  onClick={() => {
+                    setSelectedFee(f);
+                    setViewOpen(true);
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 font-semibold text-ink-700">
+                      {f.student?.name?.[0]?.toUpperCase() || <Wallet size={16} />}
+                    </div>
+
+                    <div>
+                      <p className="font-medium text-ink-800">
+                        {f.student?.name || 'Unknown Student'}
+                      </p>
+                      <p className="text-xs text-ink-400 font-normal">
+                        {f.title} · <span className="font-medium text-ink-700">{inr(f.amount)}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Badge tone={statusTone[f.status]} className="capitalize">
+                      {f.status}
+                    </Badge>
+                    <ChevronRight size={18} className="text-slate-400" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </>
         )}
       </Card>
 
-      {/* Issue fee */}
+      {/* Issue fee Modal */}
       <Modal open={open} onClose={() => setOpen(false)} title="Issue fee" maxWidth="max-w-lg"
         footer={<>
           <Button variant="secondary" onClick={() => setOpen(false)}>Cancel</Button>
@@ -189,7 +242,7 @@ export default function FeesManager() {
         </form>
       </Modal>
 
-      {/* Record payment */}
+      {/* Record payment Modal */}
       <Modal open={!!payFor} onClose={() => setPayFor(null)} title="Record payment"
         description={payFor ? `${payFor.student?.name} · ${payFor.title}` : ''} maxWidth="max-w-sm"
         footer={<>
@@ -215,6 +268,100 @@ export default function FeesManager() {
                 <option value="bank">Bank transfer</option>
               </Select>
             </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Mobile Detailed Fee Action Drawer / Modal */}
+      <Modal
+        open={viewOpen}
+        onClose={() => setViewOpen(false)}
+        title={selectedFee?.student?.name || "Fee Details"}
+        description={selectedFee?.title}
+        maxWidth="max-w-3xl"
+        footer={
+          <div className="flex w-full items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="danger"
+                className="h-9 px-3 text-xs"
+                onClick={() => {
+                  setViewOpen(false);
+                  remove(selectedFee);
+                }}
+              >
+                <Trash2 size={14} className="mr-1.5" />
+                Delete
+              </Button>
+
+              {selectedFee?.status !== 'paid' && (
+                <Button
+                  className="h-9 px-3 text-xs"
+                  onClick={() => {
+                    setViewOpen(false);
+                    openPay(selectedFee);
+                  }}
+                >
+                  Record Payment
+                </Button>
+              )}
+            </div>
+
+            <Button
+              variant="secondary"
+              className="h-9 px-3 text-xs"
+              onClick={() => setViewOpen(false)}
+            >
+              Done
+            </Button>
+          </div>
+        }
+      >
+        {selectedFee && (
+          <div className="max-h-[70vh] overflow-y-auto space-y-5 pr-1">
+            <div>
+              <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+                Fee Overview
+              </h3>
+
+              <div className="divide-y divide-slate-100 rounded-lg border border-slate-100">
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-xs text-slate-500">Roll Number</span>
+                  <span className="text-sm font-medium">{selectedFee.student?.rollNumber || "—"}</span>
+                </div>
+
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-xs text-slate-500">Total Billed</span>
+                  <span className="text-sm font-semibold text-ink-800">{inr(selectedFee.amount)}</span>
+                </div>
+
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-xs text-slate-500">Amount Paid</span>
+                  <span className="text-sm font-medium text-emerald-600">{inr(selectedFee.paidAmount)}</span>
+                </div>
+
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-xs text-slate-500">Due Date</span>
+                  <span className="text-sm font-medium text-ink-500">{fmt(selectedFee.dueDate)}</span>
+                </div>
+
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-xs text-slate-500">Status</span>
+                  <Badge tone={statusTone[selectedFee.status]} className="capitalize">{selectedFee.status}</Badge>
+                </div>
+              </div>
+            </div>
+            
+            {selectedFee.notes && (
+              <div>
+                <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+                  Notes
+                </h3>
+                <div className="rounded-lg border border-slate-100 p-3 text-xs text-ink-600 bg-slate-50/50">
+                  {selectedFee.notes}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </Modal>

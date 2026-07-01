@@ -2,27 +2,31 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, FileText, Trash2, Users, Calendar, ClipboardCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../../api/client';
-import { useFetch } from '../../lib/useFetch';
+import { useGetAssignmentsQuery, useCreateAssignmentMutation, useDeleteAssignmentMutation, useGetSubmissionsQuery, useGradeSubmissionMutation } from '../../features/assignments/assignmentApi';
+import { useGetClassesQuery } from '../../features/classes/classApi';
 import { PageHeader } from '../../components/ui/blocks';
 import { Button, Input, Label, Select, Textarea, Card, Badge, Spinner, EmptyState } from '../../components/ui/primitives';
 import Modal from '../../components/ui/Modal';
+import {getErrMsg} from '../../lib/getErrMsg';
 
 const fmtDate = (d) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
 const emptyForm = { title: '', description: '', subject: '', classRoom: '', dueDate: '', maxMarks: 100, attachmentUrl: '' };
 
 export default function TeacherAssignments() {
-  const { data: assignments, loading, refetch } = useFetch('/assignments', []);
-  const { data: classes } = useFetch('/classes', []);
+  const { data: assignments, isLoading: loading } = useGetAssignmentsQuery();
+  const { data: classes } = useGetClassesQuery();
+  const [createAssignment] = useCreateAssignmentMutation();
+  const [deleteAssignment] = useDeleteAssignmentMutation();
+  const [gradeSubmission] = useGradeSubmissionMutation();
+
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
 
-  // submissions viewer
+  // submissions viewer — querying by assignment id, cached per assignment
   const [active, setActive] = useState(null);
-  const [subs, setSubs] = useState([]);
-  const [subsLoading, setSubsLoading] = useState(false);
+  const { data: subs, isLoading: subsLoading } = useGetSubmissionsQuery(active?._id, { skip: !active });
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -30,13 +34,12 @@ export default function TeacherAssignments() {
     e.preventDefault();
     setSaving(true);
     try {
-      await api.post('/assignments', { ...form, maxMarks: Number(form.maxMarks) });
+      await createAssignment({ ...form, maxMarks: Number(form.maxMarks) }).unwrap();
       toast.success('Assignment posted');
       setModalOpen(false);
       setForm(emptyForm);
-      refetch();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrMsg(err));
     } finally {
       setSaving(false);
     }
@@ -45,34 +48,19 @@ export default function TeacherAssignments() {
   const handleDelete = async (a) => {
     if (!confirm(`Delete "${a.title}"? All submissions will be removed.`)) return;
     try {
-      await api.delete(`/assignments/${a._id}`);
+      await deleteAssignment(a._id).unwrap();
       toast.success('Deleted');
-      refetch();
     } catch (err) {
-      toast.error(err.message);
-    }
-  };
-
-  const openSubs = async (a) => {
-    setActive(a);
-    setSubsLoading(true);
-    try {
-      const { data } = await api.get(`/assignments/${a._id}/submissions`);
-      setSubs(data);
-    } catch (err) {
-      toast.error(err.message);
-    } finally {
-      setSubsLoading(false);
+      toast.error(getErrMsg(err));
     }
   };
 
   const grade = async (sub, marks, feedback) => {
     try {
-      const { data } = await api.put(`/submissions/${sub._id}/grade`, { marks: Number(marks), feedback });
-      setSubs((prev) => prev.map((s) => (s._id === sub._id ? { ...s, ...data, student: s.student } : s)));
+      await gradeSubmission({ submissionId: sub._id, assignmentId: active._id, marks: Number(marks), feedback }).unwrap();
       toast.success('Graded');
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrMsg(err));
     }
   };
 
@@ -114,7 +102,7 @@ export default function TeacherAssignments() {
                     </div>
                   </div>
                   <div className="flex shrink-0 gap-2">
-                    <Button variant="secondary" size="sm" onClick={() => openSubs(a)}>
+                    <Button variant="secondary" size="sm" onClick={() => setActive(a)}>
                       <ClipboardCheck size={15} /> Submissions
                     </Button>
                     <button onClick={() => handleDelete(a)} className="rounded-lg p-2 text-ink-400 hover:bg-rose-50 hover:text-rose-600"><Trash2 size={16} /></button>
@@ -188,7 +176,7 @@ export default function TeacherAssignments() {
       >
         {subsLoading ? (
           <div className="flex justify-center py-8"><Spinner className="h-6 w-6" /></div>
-        ) : subs.length === 0 ? (
+        ) : !subs || subs.length === 0 ? (
           <p className="py-6 text-center text-sm text-ink-400">No submissions yet.</p>
         ) : (
           <div className="space-y-3">

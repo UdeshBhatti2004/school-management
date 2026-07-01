@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Video, Trash2, Play, Clock, User } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../../api/client';
-import { useFetch } from '../../lib/useFetch';
+import { useGetLecturesQuery, useCreateLectureMutation, useDeleteLectureMutation } from '../../features/lectures/lectureApi';
+import { useGetClassesQuery } from '../../features/classes/classApi';
 import { PageHeader } from '../../components/ui/blocks';
 import { Button, Input, Label, Select, Textarea, Card, Badge, Spinner, EmptyState } from '../../components/ui/primitives';
 import Modal from '../../components/ui/Modal';
 import FileUpload from '../../components/ui/FileUpload';
+import { getErrMsg } from '../../lib/getErrMsg';
 
-// Build an embeddable URL from common providers; fall back to raw link
 function toEmbed(url) {
   try {
     const u = new URL(url);
@@ -17,26 +17,25 @@ function toEmbed(url) {
       const id = u.searchParams.get('v');
       if (id) return `https://www.youtube.com/embed/${id}`;
     }
-    if (u.hostname === 'youtu.be') {
-      return `https://www.youtube.com/embed${u.pathname}`;
-    }
+    if (u.hostname === 'youtu.be') return `https://www.youtube.com/embed${u.pathname}`;
     if (u.hostname.includes('vimeo.com')) {
       const id = u.pathname.split('/').filter(Boolean)[0];
       if (id) return `https://player.vimeo.com/video/${id}`;
     }
-  } catch {
-    /* not a parseable URL */
-  }
+  } catch { /* not parseable */ }
   return null;
 }
 
 const emptyForm = { title: '', description: '', subject: '', classRoom: '', videoUrl: '', durationMinutes: '', sourceType: 'link', publicId: '' };
 
 export default function LecturesView({ manage = false }) {
-  const { data: lectures, loading, refetch } = useFetch('/lectures', []);
-  const { data: classes } = useFetch('/classes', []);
+  const { data: lectures, isLoading: loading } = useGetLecturesQuery();
+  const { data: classes } = useGetClassesQuery();
+  const [createLecture] = useCreateLectureMutation();
+  const [deleteLecture] = useDeleteLectureMutation();
+
   const [modalOpen, setModalOpen] = useState(false);
-  const [mode, setMode] = useState('link'); // 'link' | 'upload'
+  const [mode, setMode] = useState('link');
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [playing, setPlaying] = useState(null);
@@ -48,17 +47,13 @@ export default function LecturesView({ manage = false }) {
     if (!form.videoUrl) return toast.error('Add a video link or upload a file');
     setSaving(true);
     try {
-      await api.post('/lectures', {
-        ...form,
-        durationMinutes: form.durationMinutes ? Number(form.durationMinutes) : 0,
-      });
+      await createLecture({ ...form, durationMinutes: form.durationMinutes ? Number(form.durationMinutes) : 0 }).unwrap();
       toast.success('Lecture published');
       setModalOpen(false);
       setForm(emptyForm);
       setMode('link');
-      refetch();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrMsg(err));
     } finally {
       setSaving(false);
     }
@@ -67,11 +62,10 @@ export default function LecturesView({ manage = false }) {
   const handleDelete = async (l) => {
     if (!confirm(`Delete "${l.title}"?`)) return;
     try {
-      await api.delete(`/lectures/${l._id}`);
+      await deleteLecture(l._id).unwrap();
       toast.success('Deleted');
-      refetch();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrMsg(err));
     }
   };
 
@@ -88,7 +82,7 @@ export default function LecturesView({ manage = false }) {
       ) : (lectures || []).length === 0 ? (
         <Card>
           <EmptyState icon={Video} title="No lectures yet"
-            description={manage ? 'Add a video link and it will be available to the class.' : 'Your teachers haven\u2019t posted any lectures yet.'}
+            description={manage ? 'Add a video link and it will be available to the class.' : "Your teachers haven't posted any lectures yet."}
             action={manage ? <Button onClick={() => setModalOpen(true)}><Plus size={16} /> New lecture</Button> : null} />
         </Card>
       ) : (
@@ -122,13 +116,8 @@ export default function LecturesView({ manage = false }) {
         </div>
       )}
 
-      {/* Create */}
       {manage && (
-        <Modal
-          open={modalOpen}
-          onClose={() => setModalOpen(false)}
-          title="New lecture"
-          maxWidth="max-w-xl"
+        <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="New lecture" maxWidth="max-w-xl"
           footer={
             <>
               <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
@@ -136,17 +125,10 @@ export default function LecturesView({ manage = false }) {
                 {saving ? <Spinner className="h-4 w-4 border-white/40 border-t-white" /> : 'Publish'}
               </Button>
             </>
-          }
-        >
+          }>
           <form onSubmit={handleCreate} className="space-y-4">
-            <div>
-              <Label>Title</Label>
-              <Input value={form.title} onChange={set('title')} required />
-            </div>
-            <div>
-              <Label>Description</Label>
-              <Textarea rows={2} value={form.description} onChange={set('description')} />
-            </div>
+            <div><Label>Title</Label><Input value={form.title} onChange={set('title')} required /></div>
+            <div><Label>Description</Label><Textarea rows={2} value={form.description} onChange={set('description')} /></div>
             <div>
               <Label>Video source</Label>
               <div className="mb-2 flex gap-2">
@@ -156,17 +138,13 @@ export default function LecturesView({ manage = false }) {
               {mode === 'link' ? (
                 <>
                   <Input value={form.sourceType === 'link' ? form.videoUrl : ''} onChange={(e) => setForm((f) => ({ ...f, videoUrl: e.target.value, sourceType: 'link', publicId: '' }))} placeholder="https://www.youtube.com/watch?v=…" />
-                  <p className="mt-1 text-xs text-ink-400">YouTube and Vimeo links embed automatically; any other link opens in a new tab.</p>
+                  <p className="mt-1 text-xs text-ink-400">YouTube and Vimeo links embed automatically.</p>
                 </>
               ) : (
-                <FileUpload
-                  accept="video/*"
-                  label="Upload a video file"
-                  hint="MP4/WebM · stored on Cloudinary"
+                <FileUpload accept="video/*" label="Upload a video file" hint="MP4/WebM · stored on Cloudinary"
                   value={form.sourceType === 'upload' && form.videoUrl ? { url: form.videoUrl, fileName: 'Uploaded video' } : null}
                   onUploaded={(r) => setForm((f) => ({ ...f, videoUrl: r.url, sourceType: 'upload', publicId: r.publicId }))}
-                  onClear={() => setForm((f) => ({ ...f, videoUrl: '', sourceType: 'link', publicId: '' }))}
-                />
+                  onClear={() => setForm((f) => ({ ...f, videoUrl: '', sourceType: 'link', publicId: '' }))} />
               )}
             </div>
             <div className="grid grid-cols-3 gap-4">
@@ -177,20 +155,13 @@ export default function LecturesView({ manage = false }) {
                   {(classes || []).map((c) => <option key={c._id} value={c._id}>{c.name} · {c.section}</option>)}
                 </Select>
               </div>
-              <div>
-                <Label>Minutes</Label>
-                <Input type="number" value={form.durationMinutes} onChange={set('durationMinutes')} />
-              </div>
+              <div><Label>Minutes</Label><Input type="number" value={form.durationMinutes} onChange={set('durationMinutes')} /></div>
             </div>
-            <div>
-              <Label>Subject</Label>
-              <Input value={form.subject} onChange={set('subject')} placeholder="Physics" />
-            </div>
+            <div><Label>Subject</Label><Input value={form.subject} onChange={set('subject')} placeholder="Physics" /></div>
           </form>
         </Modal>
       )}
 
-      {/* Player */}
       <Modal open={!!playing} onClose={() => setPlaying(null)} title={playing?.title} maxWidth="max-w-3xl">
         {playing && (
           <div>
@@ -200,13 +171,8 @@ export default function LecturesView({ manage = false }) {
               </div>
             ) : toEmbed(playing.videoUrl) ? (
               <div className="aspect-video overflow-hidden rounded-xl bg-ink-900">
-                <iframe
-                  src={toEmbed(playing.videoUrl)}
-                  title={playing.title}
-                  className="h-full w-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
+                <iframe src={toEmbed(playing.videoUrl)} title={playing.title} className="h-full w-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
               </div>
             ) : (
               <div className="rounded-xl bg-slate-50 p-6 text-center">

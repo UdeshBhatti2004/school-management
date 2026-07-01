@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { FileText, Video, Calendar, Megaphone, ArrowRight } from 'lucide-react';
-import { useFetch } from '../../lib/useFetch';
+import { useGetAssignmentsQuery } from '../../features/assignments/assignmentApi';
+import { useGetLecturesQuery } from '../../features/lectures/lectureApi';
+import { useGetAnnouncementsQuery } from '../../features/announcements/announcementApi';
 import { useAuth } from '../../context/AuthContext';
 import { PageHeader, StatCard } from '../../components/ui/blocks';
 import { Card, Spinner, Badge } from '../../components/ui/primitives';
@@ -9,9 +11,9 @@ const fmtDate = (d) => new Date(d).toLocaleDateString(undefined, { day: 'numeric
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
-  const { data: assignments, loading } = useFetch('/assignments', []);
-  const { data: lectures } = useFetch('/lectures', []);
-  const { data: announcements } = useFetch('/announcements', []);
+  const { data: assignments, isLoading: loading } = useGetAssignmentsQuery();
+  const { data: lectures } = useGetLecturesQuery();
+  const { data: announcements } = useGetAnnouncementsQuery();
 
   const upcoming = (assignments || [])
     .filter((a) => new Date(a.dueDate) >= new Date())

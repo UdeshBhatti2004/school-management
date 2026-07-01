@@ -1,5 +1,5 @@
 import { CalendarCheck, Check, X, Clock } from 'lucide-react';
-import { useFetch } from '../../lib/useFetch';
+import { useGetMyAttendanceQuery } from '../../features/attendance/attendanceApi';
 import { PageHeader, StatCard } from '../../components/ui/blocks';
 import { Card, Spinner, Badge, EmptyState } from '../../components/ui/primitives';
 
@@ -8,7 +8,7 @@ const iconFor = (status) => (status === 'present' ? Check : status === 'late' ? 
 const fmt = (d) => new Date(d).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
 
 export default function MyAttendance() {
-  const { data, loading } = useFetch('/attendance/me', []);
+  const { data, isLoading: loading } = useGetMyAttendanceQuery();
   const summary = data?.summary;
   const history = data?.history || [];
 

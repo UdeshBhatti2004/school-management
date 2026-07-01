@@ -1,14 +1,18 @@
 import { Link } from 'react-router-dom';
 import { GraduationCap, Users, School, FileText, Video, ArrowRight, Megaphone, Wallet, CalendarCheck } from 'lucide-react';
-import { useFetch } from '../../lib/useFetch';
 import { useAuth } from '../../context/AuthContext';
+import { useGetOverviewStatsQuery } from '../../features/dashboard/dashboardApi';
+import { useGetAnnouncementsQuery } from '../../features/announcements/announcementApi';
 import { PageHeader, StatCard } from '../../components/ui/blocks';
 import { Card, Spinner, Badge } from '../../components/ui/primitives';
 
 export default function AdminDashboard() {
   const { user } = useAuth();
-  const { data: stats, loading } = useFetch('/users/stats/overview', []);
-  const { data: announcements } = useFetch('/announcements', []);
+  // Cached + deduped by RTK Query: navigating away and back to this page no
+  // longer re-fires the request unless the cache was invalidated (e.g. a
+  // teacher/student was added or removed) or the data went stale.
+  const { data: stats, isLoading: loading } = useGetOverviewStatsQuery();
+  const { data: announcements } = useGetAnnouncementsQuery();
 
   const inr = (n) => '₹' + Number(n || 0).toLocaleString('en-IN');
   const cards = [

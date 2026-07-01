@@ -5,6 +5,8 @@ import { GraduationCap, Mail, Lock, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { Button, Input, Label, Spinner } from '../components/ui/primitives';
+import { getErrMsg } from '../lib/getErrMsg';
+
 
 const demoAccounts = [
   { role: 'Admin', email: 'admin@school.edu' },
@@ -30,7 +32,7 @@ export default function Login() {
       const dest = location.state?.from?.pathname || '/app';
       navigate(dest, { replace: true });
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrMsg(err));
     } finally {
       setSubmitting(false);
     }

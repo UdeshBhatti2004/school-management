@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { CalendarCheck, Check, X, Clock, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../../api/client';
-import { useFetch } from '../../lib/useFetch';
+import { useGetClassesQuery, useLazyGetClassByIdQuery } from '../../features/classes/classApi';
+import { useGetAttendanceQuery, useMarkAttendanceMutation } from '../../features/attendance/attendanceApi';
 import { PageHeader } from '../../components/ui/blocks';
 import { Button, Input, Label, Select, Card, Spinner, EmptyState, Badge } from '../../components/ui/primitives';
 import { cn } from '../../lib/cn';
+import { getErrMsg } from '../../lib/getErrMsg';
 
 const STATUSES = [
   { key: 'present', label: 'Present', icon: Check, tone: 'bg-emerald-600' },
@@ -17,40 +18,48 @@ const STATUSES = [
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
 export default function TakeAttendance() {
-  const { data: classes } = useFetch('/classes', []);
+  const { data: classes } = useGetClassesQuery();
   const [classId, setClassId] = useState('');
   const [date, setDate] = useState(todayStr());
   const [subject, setSubject] = useState('');
-  const [students, setStudents] = useState([]);
   const [marks, setMarks] = useState({});
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Load roster + any existing sheet when class/date/subject changes
+  // Roster comes from the class detail endpoint (separate cache entry, kept
+  // warm across date/subject changes within the same class).
+  const [fetchClass, { data: classDetail, isFetching: rosterLoading }] = useLazyGetClassByIdQuery();
+  const students = classDetail?.students || [];
+
+  // Existing attendance sheet for this class+date — refetches automatically
+  // whenever classId or date change because they're part of the query arg.
+  const { data: existingSheet, isFetching: sheetLoading } = useGetAttendanceQuery(
+    { classRoom: classId, date },
+    { skip: !classId }
+  );
+  const [markAttendance] = useMarkAttendanceMutation();
+
   useEffect(() => {
-    if (!classId) {
-      setStudents([]);
+    if (classId) fetchClass(classId);
+  }, [classId, fetchClass]);
+
+  // Seed the per-student status map whenever the roster or the existing
+  // sheet for this subject changes.
+  useEffect(() => {
+    if (!students.length) {
+      setMarks({});
       return;
     }
-    setLoading(true);
-    Promise.all([
-      api.get(`/classes/${classId}`),
-      api.get(`/attendance?classRoom=${classId}&date=${date}`),
-    ])
-      .then(([clsRes, attRes]) => {
-        const roster = clsRes.data.students || [];
-        setStudents(roster);
-        const existing = (attRes.data || []).find((s) => (s.subject || '') === subject);
-        const init = {};
-        roster.forEach((s) => {
-          const rec = existing?.records?.find((r) => (r.student._id || r.student) === s._id);
-          init[s._id] = rec?.status || 'present';
-        });
-        setMarks(init);
-      })
-      .catch((err) => toast.error(err.message))
-      .finally(() => setLoading(false));
-  }, [classId, date, subject]);
+    const existing = (existingSheet || []).find((s) => (s.subject || '') === subject);
+    const init = {};
+    students.forEach((s) => {
+      const rec = existing?.records?.find((r) => (r.student._id || r.student) === s._id);
+      init[s._id] = rec?.status || 'present';
+    });
+    setMarks(init);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [students, existingSheet, subject]);
+
+  const loading = Boolean(classId) && (rosterLoading || sheetLoading);
 
   const setStatus = (studentId, status) => setMarks((m) => ({ ...m, [studentId]: status }));
   const markAll = (status) => {
@@ -63,21 +72,25 @@ export default function TakeAttendance() {
     setSaving(true);
     try {
       const records = students.map((s) => ({ student: s._id, status: marks[s._id] || 'present' }));
-      await api.post('/attendance', { classRoom: classId, date, subject, records });
+      await markAttendance({ classRoom: classId, date, subject, records }).unwrap();
       toast.success('Attendance saved');
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrMsg(err));
     } finally {
       setSaving(false);
     }
   };
 
-  const counts = students.reduce(
-    (acc, s) => {
-      acc[marks[s._id] || 'present'] += 1;
-      return acc;
-    },
-    { present: 0, late: 0, absent: 0 }
+  const counts = useMemo(
+    () =>
+      students.reduce(
+        (acc, s) => {
+          acc[marks[s._id] || 'present'] += 1;
+          return acc;
+        },
+        { present: 0, late: 0, absent: 0 }
+      ),
+    [students, marks]
   );
 
   return (

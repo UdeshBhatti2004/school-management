@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Pencil, Trash2, Search, Mail, Phone } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../../api/client';
-import { useFetch } from '../../lib/useFetch';
+import { useGetUsersQuery, useCreateUserMutation, useUpdateUserMutation, useDeleteUserMutation } from '../../features/users/userApi';
+import { useGetClassesQuery } from '../../features/classes/classApi';
 import { PageHeader } from '../../components/ui/blocks';
 import { Button, Input, Label, Select, Card, Badge, Spinner, EmptyState } from '../../components/ui/primitives';
 import Modal from '../../components/ui/Modal';
+import { getErrMsg } from '../../lib/getErrMsg';
+import { ChevronRight } from "lucide-react";
 
 const emptyForm = (role) => ({
   name: '', email: '', password: '', role, phone: '', isActive: true,
@@ -17,8 +19,18 @@ const emptyForm = (role) => ({
 });
 
 export default function UsersManager({ role, title, subtitle, icon: Icon }) {
-  const { data: users, loading, refetch } = useFetch(`/users?role=${role}`, [role]);
-  const { data: classes } = useFetch('/classes', []);
+  // Cached per-role: switching Teachers -> Students -> Teachers reuses the
+  // cache instead of refetching, same as the dashboard.
+  const { data: users, isLoading: loading } = useGetUsersQuery(role);
+  const { data: classes } = useGetClassesQuery();
+  const [createUser] = useCreateUserMutation();
+  const [updateUser] = useUpdateUserMutation();
+  const [deleteUser] = useDeleteUserMutation();
+
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  const [viewOpen, setViewOpen] = useState(false);
+
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -48,6 +60,11 @@ export default function UsersManager({ role, title, subtitle, icon: Icon }) {
     setForm((f) => ({ ...f, [k]: val }));
   };
 
+  const handleView = (user) => {
+  setSelectedUser(user);
+  setDrawerOpen(true);
+};
+
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -62,16 +79,17 @@ export default function UsersManager({ role, title, subtitle, icon: Icon }) {
       if (!payload.password) delete payload.password;
 
       if (editing) {
-        await api.put(`/users/${editing._id}`, payload);
+        await updateUser({ id: editing._id, role, ...payload }).unwrap();
         toast.success(`${title.slice(0, -1)} updated`);
       } else {
-        await api.post('/users', payload);
+        await createUser(payload).unwrap();
         toast.success(`${title.slice(0, -1)} added`);
       }
       setModalOpen(false);
-      refetch();
+      // No refetch() call — invalidatesTags on the mutation already told
+      // RTK Query which cached queries (this list + dashboard stats) to refresh.
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrMsg(err));
     } finally {
       setSaving(false);
     }
@@ -80,11 +98,10 @@ export default function UsersManager({ role, title, subtitle, icon: Icon }) {
   const handleDelete = async (u) => {
     if (!confirm(`Remove ${u.name}? This cannot be undone.`)) return;
     try {
-      await api.delete(`/users/${u._id}`);
+      await deleteUser({ id: u._id, role }).unwrap();
       toast.success('Removed');
-      refetch();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrMsg(err));
     }
   };
 
@@ -129,7 +146,8 @@ export default function UsersManager({ role, title, subtitle, icon: Icon }) {
             action={<Button onClick={openCreate}><Plus size={16} /> Add {title.slice(0, -1).toLowerCase()}</Button>}
           />
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-ink-400">
@@ -138,7 +156,9 @@ export default function UsersManager({ role, title, subtitle, icon: Icon }) {
                   {role === 'teacher' ? (
                     <>
                       <th className="px-5 py-3">Department</th>
-                      <th className="px-5 py-3">Subjects</th>
+                      <th className="hidden lg:table-cell px-5 py-3">
+    Subjects
+</th>
                     </>
                   ) : (
                     <>
@@ -174,7 +194,7 @@ export default function UsersManager({ role, title, subtitle, icon: Icon }) {
                     {role === 'teacher' ? (
                       <>
                         <td className="px-5 py-3.5 text-ink-600">{u.department || '—'}</td>
-                        <td className="px-5 py-3.5">
+                        <td className="hidden lg:table-cell px-5 py-3.5">
                           <div className="flex flex-wrap gap-1">
                             {(u.subjects || []).slice(0, 3).map((s) => (
                               <Badge key={s} tone="brand">{s}</Badge>
@@ -211,8 +231,59 @@ export default function UsersManager({ role, title, subtitle, icon: Icon }) {
               </tbody>
             </table>
           </div>
+      <div className="divide-y divide-slate-100 md:hidden">
+  {filtered.map((u) => (
+    <button
+      key={u._id}
+      className="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-slate-50"
+      onClick={() => setSelectedUser(u)}
+    >
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 font-semibold text-ink-700">
+          {u.name?.[0]?.toUpperCase()}
+        </div>
+
+        <div>
+          <p className="font-medium text-ink-800">
+            {u.name}
+          </p>
+
+          <p className="text-sm text-ink-500">
+            {role === "teacher"
+              ? u.department || "No Department"
+              : u.classRoom
+              ? `${u.classRoom.name} · ${u.classRoom.section}`
+              : "No Class"}
+          </p>
+        </div>
+      </div>
+
+     <div className="flex items-center gap-2">
+    <Badge tone={u.isActive ? "green" : "rose"}>
+        {u.isActive ? "Active" : "Inactive"}
+    </Badge>
+
+    <ChevronRight
+  size={18}
+  className="text-slate-400"
+  onClick={() => {
+  setSelectedUser(u);
+  setViewOpen(true);
+}}
+/>
+
+</div>
+    </button>
+  ))}
+</div>
+          
+          
+          </>
         )}
+
+        
       </Card>
+      
 
       <Modal
         open={modalOpen}
@@ -296,6 +367,180 @@ export default function UsersManager({ role, title, subtitle, icon: Icon }) {
           </label>
         </form>
       </Modal>
+
+      <Modal
+  open={viewOpen}
+  onClose={() => setViewOpen(false)}
+  title={selectedUser?.name || "User Details"}
+  description={selectedUser?.email}
+  maxWidth="max-w-3xl"
+  footer={
+    <div className="flex w-full items-center justify-between">
+      <div className="flex items-center gap-2">
+        <Button
+          variant="danger"
+          className="h-9 px-3 text-xs"
+          onClick={() => {
+            setViewOpen(false);
+            handleDelete(selectedUser);
+          }}
+        >
+          <Trash2 size={14} className="mr-1.5" />
+          Delete
+        </Button>
+
+        <Button
+          className="h-9 px-3 text-xs"
+          onClick={() => {
+            setViewOpen(false);
+            openEdit(selectedUser);
+          }}
+        >
+          <Pencil size={14} className="mr-1.5" />
+          Edit
+        </Button>
+      </div>
+
+      <Button
+        variant="secondary"
+        className="h-9 px-3 text-xs"
+        onClick={() => setViewOpen(false)}
+      >
+        Done
+      </Button>
+    </div>
+  }
+>
+  {selectedUser && (
+    <div className="max-h-[70vh] overflow-y-auto space-y-5 pr-1">
+
+      {/* General */}
+
+      <div>
+        <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+          General
+        </h3>
+
+        <div className="divide-y divide-slate-100 rounded-lg border border-slate-100">
+
+          <div className="flex items-center justify-between px-4 py-2.5">
+            <span className="text-xs text-slate-500">Phone</span>
+            <span className="text-sm font-medium">
+              {selectedUser.phone || "—"}
+            </span>
+          </div>
+
+        </div>
+      </div>
+
+      {role === "teacher" ? (
+        <div>
+          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+            Employment
+          </h3>
+
+          <div className="divide-y divide-slate-100 rounded-lg border border-slate-100">
+
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <span className="text-xs text-slate-500">
+                Employee ID
+              </span>
+
+              <span className="text-sm font-medium">
+                {selectedUser.employeeId || "—"}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <span className="text-xs text-slate-500">
+                Department
+              </span>
+
+              <span className="text-sm font-medium">
+                {selectedUser.department || "—"}
+              </span>
+            </div>
+
+            <div className="flex items-start justify-between px-4 py-2.5">
+              <span className="text-xs text-slate-500">
+                Subjects
+              </span>
+
+              <div className="flex max-w-[60%] flex-wrap justify-end gap-1">
+                {selectedUser.subjects?.length ? (
+                  selectedUser.subjects.map((subject) => (
+                    <Badge
+                      key={subject}
+                      tone="brand"
+                      className="text-[10px]"
+                    >
+                      {subject}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-sm font-medium">—</span>
+                )}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      ) : (
+        <div>
+          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+            Student Information
+          </h3>
+
+          <div className="divide-y divide-slate-100 rounded-lg border border-slate-100">
+
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <span className="text-xs text-slate-500">
+                Roll Number
+              </span>
+
+              <span className="text-sm font-medium">
+                {selectedUser.rollNumber || "—"}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <span className="text-xs text-slate-500">
+                Class
+              </span>
+
+              <span className="text-sm font-medium">
+                {selectedUser.classRoom
+                  ? `${selectedUser.classRoom.name} · ${selectedUser.classRoom.section}`
+                  : "—"}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <span className="text-xs text-slate-500">
+                Guardian
+              </span>
+
+              <span className="text-sm font-medium">
+                {selectedUser.guardianName || "—"}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <span className="text-xs text-slate-500">
+                Guardian Phone
+              </span>
+
+              <span className="text-sm font-medium">
+                {selectedUser.guardianPhone || "—"}
+              </span>
+            </div>
+
+          </div>
+        </div>
+      )}
+    </div>
+  )}
+</Modal>
     </div>
   );
 }

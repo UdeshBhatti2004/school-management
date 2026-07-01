@@ -1,28 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { CalendarCheck } from 'lucide-react';
-import toast from 'react-hot-toast';
-import api from '../../api/client';
-import { useFetch } from '../../lib/useFetch';
+import { useGetClassesQuery } from '../../features/classes/classApi';
+import { useGetClassSummaryQuery } from '../../features/attendance/attendanceApi';
 import { PageHeader } from '../../components/ui/blocks';
 import { Card, Select, Label, Spinner, EmptyState, Badge } from '../../components/ui/primitives';
 
 const percentTone = (p) => (p >= 75 ? 'green' : p >= 50 ? 'amber' : 'rose');
 
 export default function AttendanceOverview() {
-  const { data: classes } = useFetch('/classes', []);
+  const { data: classes } = useGetClassesQuery();
   const [classId, setClassId] = useState('');
-  const [summary, setSummary] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!classId) return setSummary(null);
-    setLoading(true);
-    api
-      .get(`/attendance/summary?classRoom=${classId}`)
-      .then(({ data }) => setSummary(data))
-      .catch((err) => toast.error(err.message))
-      .finally(() => setLoading(false));
-  }, [classId]);
+  const { data: summary, isLoading: loading } = useGetClassSummaryQuery(classId, { skip: !classId });
 
   return (
     <div>

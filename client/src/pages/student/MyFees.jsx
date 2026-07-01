@@ -1,5 +1,5 @@
 import { Wallet, CheckCircle2, Clock } from 'lucide-react';
-import { useFetch } from '../../lib/useFetch';
+import { useGetFeesQuery } from '../../features/fees/feeApi';
 import { PageHeader, StatCard } from '../../components/ui/blocks';
 import { Card, Badge, Spinner, EmptyState } from '../../components/ui/primitives';
 
@@ -8,7 +8,7 @@ const fmt = (d) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', m
 const statusTone = { paid: 'green', partial: 'amber', pending: 'rose' };
 
 export default function MyFees() {
-  const { data: fees, loading } = useFetch('/fees', []);
+  const { data: fees, isLoading: loading } = useGetFeesQuery();
 
   const totalDue = (fees || []).reduce((s, f) => s + (f.amount - f.paidAmount), 0);
   const totalPaid = (fees || []).reduce((s, f) => s + f.paidAmount, 0);

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { BookCopy, Video, Award, Calendar, ArrowRight, Clock } from 'lucide-react';
-import { useFetch } from '../../lib/useFetch';
+import { useGetAssignmentsQuery } from '../../features/assignments/assignmentApi';
+import { useGetLecturesQuery } from '../../features/lectures/lectureApi';
 import { useAuth } from '../../context/AuthContext';
 import { PageHeader, StatCard } from '../../components/ui/blocks';
 import { Card, Spinner, Badge } from '../../components/ui/primitives';
@@ -9,8 +10,8 @@ const fmtDate = (d) => new Date(d).toLocaleDateString(undefined, { day: 'numeric
 
 export default function StudentDashboard() {
   const { user } = useAuth();
-  const { data: assignments, loading } = useFetch('/assignments', []);
-  const { data: lectures } = useFetch('/lectures', []);
+  const { data: assignments, isLoading: loading } = useGetAssignmentsQuery();
+  const { data: lectures } = useGetLecturesQuery();
 
   const pending = (assignments || []).filter((a) => !a.mySubmission);
   const graded = (assignments || []).filter((a) => a.mySubmission?.status === 'graded');

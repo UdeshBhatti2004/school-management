@@ -30,6 +30,7 @@ const app = express();
 const allowedOrigins = [
   process.env.CLIENT_URL,
   "http://localhost:5173",
+  "http://192.168.0.110:5173/"
 ];
 
 app.use(

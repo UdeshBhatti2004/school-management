@@ -2,20 +2,23 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Megaphone, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../../api/client';
-import { useFetch } from '../../lib/useFetch';
+import { useGetAnnouncementsQuery, useCreateAnnouncementMutation, useDeleteAnnouncementMutation } from '../../features/announcements/announcementApi';
+import { useGetClassesQuery } from '../../features/classes/classApi';
 import { useAuth } from '../../context/AuthContext';
 import { PageHeader } from '../../components/ui/blocks';
 import { Button, Input, Label, Select, Textarea, Card, Badge, Spinner, EmptyState } from '../../components/ui/primitives';
 import Modal from '../../components/ui/Modal';
+import { getErrMsg } from '../../lib/getErrMsg';
 
 const fmt = (d) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
 export default function Announcements() {
   const { user } = useAuth();
   const canPost = user.role === 'admin' || user.role === 'teacher';
-  const { data: items, loading, refetch } = useFetch('/announcements', []);
-  const { data: classes } = useFetch('/classes', []);
+  const { data: items, isLoading: loading } = useGetAnnouncementsQuery();
+  const { data: classes } = useGetClassesQuery();
+  const [createAnnouncement] = useCreateAnnouncementMutation();
+  const [deleteAnnouncement] = useDeleteAnnouncementMutation();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ title: '', body: '', audience: 'all', classRoom: '' });
   const [saving, setSaving] = useState(false);
@@ -27,13 +30,12 @@ export default function Announcements() {
     setSaving(true);
     try {
       const payload = { ...form, classRoom: form.audience === 'class' ? form.classRoom : undefined };
-      await api.post('/announcements', payload);
+      await createAnnouncement(payload).unwrap();
       toast.success('Announcement posted');
       setOpen(false);
       setForm({ title: '', body: '', audience: 'all', classRoom: '' });
-      refetch();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrMsg(err));
     } finally {
       setSaving(false);
     }
@@ -42,11 +44,10 @@ export default function Announcements() {
   const handleDelete = async (a) => {
     if (!confirm('Delete this announcement?')) return;
     try {
-      await api.delete(`/announcements/${a._id}`);
+      await deleteAnnouncement(a._id).unwrap();
       toast.success('Deleted');
-      refetch();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrMsg(err));
     }
   };
 

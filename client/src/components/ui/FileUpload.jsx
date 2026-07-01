@@ -3,6 +3,7 @@ import { UploadCloud, FileCheck2, X, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { uploadFile } from '../../lib/upload';
 import { cn } from '../../lib/cn';
+import { getErrMsg } from '../../lib/getErrMsg';
 
 // Calls onUploaded({ url, publicId, resourceType, fileName }) when done.
 export default function FileUpload({ accept, label = 'Upload a file', hint, onUploaded, value, onClear }) {
@@ -20,7 +21,7 @@ export default function FileUpload({ accept, label = 'Upload a file', hint, onUp
       onUploaded?.(result);
       toast.success('File uploaded');
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrMsg(err));
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = '';

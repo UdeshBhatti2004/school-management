@@ -2,17 +2,22 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Pencil, Trash2, School, Users, X, UserCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../../api/client';
-import { useFetch } from '../../lib/useFetch';
+import { useGetClassesQuery, useCreateClassMutation, useUpdateClassMutation, useDeleteClassMutation, useLazyGetClassByIdQuery } from '../../features/classes/classApi';
+import { useGetUsersQuery } from '../../features/users/userApi';
 import { PageHeader } from '../../components/ui/blocks';
 import { Button, Input, Label, Select, Card, Badge, Spinner, EmptyState } from '../../components/ui/primitives';
 import Modal from '../../components/ui/Modal';
+import { getErrMsg } from '../../lib/getErrMsg';
 
 const emptyForm = { name: '', section: 'A', classTeacher: '', subjects: [] };
 
 export default function Classes() {
-  const { data: classes, loading, refetch } = useFetch('/classes', []);
-  const { data: teachers } = useFetch('/users?role=teacher', []);
+  const { data: classes, isLoading: loading } = useGetClassesQuery();
+  const { data: teachers } = useGetUsersQuery('teacher');
+  const [createClass] = useCreateClassMutation();
+  const [updateClass] = useUpdateClassMutation();
+  const [deleteClass] = useDeleteClassMutation();
+  const [fetchClass] = useLazyGetClassByIdQuery();
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -61,16 +66,15 @@ export default function Classes() {
           .map((s) => ({ name: s.name.trim(), teacher: s.teacher || undefined })),
       };
       if (editing) {
-        await api.put(`/classes/${editing._id}`, payload);
+        await updateClass({ id: editing._id, ...payload }).unwrap();
         toast.success('Class updated');
       } else {
-        await api.post('/classes', payload);
+        await createClass(payload).unwrap();
         toast.success('Class created');
       }
       setModalOpen(false);
-      refetch();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrMsg(err));
     } finally {
       setSaving(false);
     }
@@ -79,20 +83,19 @@ export default function Classes() {
   const handleDelete = async (c) => {
     if (!confirm(`Delete ${c.name} · ${c.section}? Students will be unassigned.`)) return;
     try {
-      await api.delete(`/classes/${c._id}`);
+      await deleteClass(c._id).unwrap();
       toast.success('Class deleted');
-      refetch();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrMsg(err));
     }
   };
 
   const viewRoster = async (c) => {
     try {
-      const { data } = await api.get(`/classes/${c._id}`);
+      const data = await fetchClass(c._id).unwrap();
       setRoster(data);
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrMsg(err));
     }
   };
 

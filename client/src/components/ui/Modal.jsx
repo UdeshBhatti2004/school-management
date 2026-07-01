@@ -48,6 +48,9 @@ export default function Modal({ open, onClose, title, description, children, foo
             )}
           </motion.div>
         </div>
+
+
+
       )}
     </AnimatePresence>
   );

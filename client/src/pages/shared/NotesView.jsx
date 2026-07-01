@@ -2,20 +2,24 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, NotebookText, Trash2, FileText, Download, LinkIcon, User } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../../api/client';
-import { useFetch } from '../../lib/useFetch';
+import { useGetNotesQuery, useCreateNoteMutation, useDeleteNoteMutation } from '../../features/notes/noteApi';
+import { useGetClassesQuery } from '../../features/classes/classApi';
 import { PageHeader } from '../../components/ui/blocks';
 import { Button, Input, Label, Select, Textarea, Card, Badge, Spinner, EmptyState } from '../../components/ui/primitives';
 import Modal from '../../components/ui/Modal';
 import FileUpload from '../../components/ui/FileUpload';
+import { getErrMsg } from '../../lib/getErrMsg';
 
 const emptyForm = { title: '', description: '', subject: '', classRoom: '', fileUrl: '', fileName: '', fileType: 'link', publicId: '' };
 
 export default function NotesView({ manage = false }) {
-  const { data: notes, loading, refetch } = useFetch('/notes', []);
-  const { data: classes } = useFetch('/classes', []);
+  const { data: notes, isLoading: loading } = useGetNotesQuery();
+  const { data: classes } = useGetClassesQuery();
+  const [createNote] = useCreateNoteMutation();
+  const [deleteNote] = useDeleteNoteMutation();
+
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState('upload'); // 'upload' | 'link'
+  const [mode, setMode] = useState('upload');
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
 
@@ -26,13 +30,12 @@ export default function NotesView({ manage = false }) {
     if (!form.fileUrl) return toast.error('Upload a file or add a link');
     setSaving(true);
     try {
-      await api.post('/notes', form);
+      await createNote(form).unwrap();
       toast.success('Note published');
       setOpen(false);
       reset();
-      refetch();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrMsg(err));
     } finally {
       setSaving(false);
     }
@@ -41,11 +44,10 @@ export default function NotesView({ manage = false }) {
   const remove = async (n) => {
     if (!confirm(`Delete "${n.title}"?`)) return;
     try {
-      await api.delete(`/notes/${n._id}`);
+      await deleteNote(n._id).unwrap();
       toast.success('Deleted');
-      refetch();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrMsg(err));
     }
   };
 
@@ -96,14 +98,8 @@ export default function NotesView({ manage = false }) {
             <Button onClick={handleCreate} disabled={saving}>{saving ? <Spinner className="h-4 w-4 border-white/40 border-t-white" /> : 'Publish'}</Button>
           </>}>
           <form onSubmit={handleCreate} className="space-y-4">
-            <div>
-              <Label>Title</Label>
-              <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
-            </div>
-            <div>
-              <Label>Description</Label>
-              <Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-            </div>
+            <div><Label>Title</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required /></div>
+            <div><Label>Description</Label><Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Class</Label>
@@ -112,12 +108,8 @@ export default function NotesView({ manage = false }) {
                   {(classes || []).map((c) => <option key={c._id} value={c._id}>{c.name} · {c.section}</option>)}
                 </Select>
               </div>
-              <div>
-                <Label>Subject</Label>
-                <Input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Physics" />
-              </div>
+              <div><Label>Subject</Label><Input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} placeholder="Physics" /></div>
             </div>
-
             <div>
               <Label>Material</Label>
               <div className="mb-2 flex gap-2">
@@ -125,14 +117,10 @@ export default function NotesView({ manage = false }) {
                 <button type="button" onClick={() => setMode('link')} className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium ${mode === 'link' ? 'border-brand-300 bg-brand-50 text-brand-700' : 'border-slate-200 text-ink-600'}`}>Add link</button>
               </div>
               {mode === 'upload' ? (
-                <FileUpload
-                  accept=".pdf,.doc,.docx,.ppt,.pptx,image/*"
-                  label="Upload PDF, doc, or image"
-                  hint="Stored on Cloudinary"
+                <FileUpload accept=".pdf,.doc,.docx,.ppt,.pptx,image/*" label="Upload PDF, doc, or image" hint="Stored on Cloudinary"
                   value={form.fileType !== 'link' && form.fileUrl ? { url: form.fileUrl, fileName: form.fileName } : null}
                   onUploaded={(r) => setForm({ ...form, fileUrl: r.url, fileName: r.fileName, fileType: r.resourceType, publicId: r.publicId })}
-                  onClear={() => setForm({ ...form, fileUrl: '', fileName: '', fileType: 'link', publicId: '' })}
-                />
+                  onClear={() => setForm({ ...form, fileUrl: '', fileName: '', fileType: 'link', publicId: '' })} />
               ) : (
                 <Input value={form.fileType === 'link' ? form.fileUrl : ''} onChange={(e) => setForm({ ...form, fileUrl: e.target.value, fileType: 'link', fileName: 'External resource', publicId: '' })} placeholder="https://…" />
               )}

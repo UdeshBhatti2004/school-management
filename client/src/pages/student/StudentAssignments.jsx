@@ -2,16 +2,17 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, Calendar, Upload, CheckCircle2, Clock, Award } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../../api/client';
-import { useFetch } from '../../lib/useFetch';
+import { useGetAssignmentsQuery, useSubmitAssignmentMutation } from '../../features/assignments/assignmentApi';
 import { PageHeader } from '../../components/ui/blocks';
 import { Button, Input, Label, Textarea, Card, Badge, Spinner, EmptyState } from '../../components/ui/primitives';
 import Modal from '../../components/ui/Modal';
+import { getErrMsg } from '../../lib/getErrMsg';
 
 const fmtDate = (d) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
 export default function StudentAssignments() {
-  const { data: assignments, loading, refetch } = useFetch('/assignments', []);
+  const { data: assignments, isLoading: loading } = useGetAssignmentsQuery();
+  const [submitAssignment] = useSubmitAssignmentMutation();
   const [active, setActive] = useState(null);
   const [content, setContent] = useState('');
   const [link, setLink] = useState('');
@@ -27,12 +28,11 @@ export default function StudentAssignments() {
     e.preventDefault();
     setSaving(true);
     try {
-      await api.post(`/assignments/${active._id}/submit`, { content, link });
+      await submitAssignment({ id: active._id, content, link }).unwrap();
       toast.success('Submitted');
       setActive(null);
-      refetch();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrMsg(err));
     } finally {
       setSaving(false);
     }

@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import { UserCircle, KeyRound } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+import { useUpdateProfileMutation, useChangePasswordMutation } from '../../features/auth/authApi';
 import { PageHeader } from '../../components/ui/blocks';
 import { Button, Input, Label, Card, Spinner, Badge } from '../../components/ui/primitives';
+import { getErrMsg } from '../../lib/getErrMsg';
 
 export default function Profile() {
-  const { user, updateUser } = useAuth();
+  const { user } = useAuth();
+  const [updateProfile] = useUpdateProfileMutation();
+  const [changePassword] = useChangePasswordMutation();
+
   const [profile, setProfile] = useState({ name: user.name, phone: user.phone || '' });
   const [savingProfile, setSavingProfile] = useState(false);
   const [pw, setPw] = useState({ currentPassword: '', newPassword: '' });
@@ -17,11 +21,12 @@ export default function Profile() {
     e.preventDefault();
     setSavingProfile(true);
     try {
-      const { data } = await api.put('/auth/profile', profile);
-      updateUser(data);
+      // onQueryStarted in authApi dispatches updateUser to the Redux store
+      // automatically, so useAuth().user updates everywhere with no extra code.
+      await updateProfile(profile).unwrap();
       toast.success('Profile updated');
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrMsg(err));
     } finally {
       setSavingProfile(false);
     }
@@ -31,16 +36,15 @@ export default function Profile() {
     e.preventDefault();
     setSavingPw(true);
     try {
-      await api.put('/auth/password', pw);
+      await changePassword(pw).unwrap();
       toast.success('Password changed');
       setPw({ currentPassword: '', newPassword: '' });
     } catch (err) {
-      toast.error(err.message);
+      toast.error(getErrMsg(err));
     } finally {
       setSavingPw(false);
     }
   };
-
 
   return (
     <div>
@@ -53,56 +57,39 @@ export default function Profile() {
           </div>
           <h2 className="mt-4 font-semibold text-ink-900">{user.name}</h2>
           <p className="text-sm text-ink-400">{user.email}</p>
-     <div className="mt-4 w-full border-t border-slate-200 pt-4 space-y-2">
-  {user.role === "student" && (
-    <>
-      <div className="flex justify-between text-sm">
-        <span className="text-ink-500">Class</span>
-        <span className="font-medium text-ink-900">
-          {user.classRoom?.label || "Not Assigned"}
-        </span>
-      </div>
-
-      <div className="flex justify-between text-sm">
-        <span className="text-ink-500">Roll No.</span>
-        <span className="font-medium text-ink-900">
-          {user.rollNumber || "-"}
-        </span>
-      </div>
-    </>
-  )}
-
-  {user.role === "teacher" && (
-    <>
-      <div className="flex justify-between text-sm">
-        <span className="text-ink-500">Department</span>
-        <span className="font-medium text-ink-900">
-          {user.department || "-"}
-        </span>
-      </div>
-
-      <div className="flex justify-between text-sm">
-        <span className="text-ink-500">Employee ID</span>
-        <span className="font-medium text-ink-900">
-          {user.employeeId || "-"}
-        </span>
-      </div>
-    </>
-  )}
-
-  <div className="flex justify-between text-sm">
-    <span className="text-ink-500">Phone</span>
-    <span className="font-medium text-ink-900">
-      {user.phone || "-"}
-    </span>
-  </div>
-
-  <div className="flex justify-center pt-3">
-    <Badge tone="brand" className="capitalize">
-      {user.role}
-    </Badge>
-  </div>
-</div>
+          <div className="mt-4 w-full border-t border-slate-200 pt-4 space-y-2">
+            {user.role === 'student' && (
+              <>
+                <div className="flex justify-between text-sm">
+                  <span className="text-ink-500">Class</span>
+                  <span className="font-medium text-ink-900">{user.classRoom?.label || 'Not Assigned'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-ink-500">Roll No.</span>
+                  <span className="font-medium text-ink-900">{user.rollNumber || '—'}</span>
+                </div>
+              </>
+            )}
+            {user.role === 'teacher' && (
+              <>
+                <div className="flex justify-between text-sm">
+                  <span className="text-ink-500">Department</span>
+                  <span className="font-medium text-ink-900">{user.department || '—'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-ink-500">Employee ID</span>
+                  <span className="font-medium text-ink-900">{user.employeeId || '—'}</span>
+                </div>
+              </>
+            )}
+            <div className="flex justify-between text-sm">
+              <span className="text-ink-500">Phone</span>
+              <span className="font-medium text-ink-900">{user.phone || '—'}</span>
+            </div>
+            <div className="flex justify-center pt-3">
+              <Badge tone="brand" className="capitalize">{user.role}</Badge>
+            </div>
+          </div>
         </Card>
 
         <div className="space-y-6 lg:col-span-2">
