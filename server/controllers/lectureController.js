@@ -5,7 +5,9 @@ import cloudinary, { cloudinaryConfigured } from '../config/cloudinary.js';
 // @route  GET /api/lectures
 // Students see their class; teachers see their own; admin sees all
 export const getLectures = asyncHandler(async (req, res) => {
-  const filter = {};
+  const filter = {
+  school: req.user.school,
+};
   if (req.user.role === 'student') {
     if (!req.user.classRoom) return res.json([]);
     filter.classRoom = req.user.classRoom;
@@ -29,7 +31,11 @@ export const createLecture = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error('Title, class and a video URL are required');
   }
-  const lecture = await Lecture.create({ ...req.body, createdBy: req.user._id });
+  const lecture = await Lecture.create({
+  ...req.body,
+  createdBy: req.user._id,
+  school: req.user.school,
+});
   const populated = await Lecture.findById(lecture._id)
     .populate('classRoom', 'name section')
     .populate('createdBy', 'name');
@@ -38,7 +44,10 @@ export const createLecture = asyncHandler(async (req, res) => {
 
 // @route  PUT /api/lectures/:id
 export const updateLecture = asyncHandler(async (req, res) => {
-  const lecture = await Lecture.findById(req.params.id);
+  const lecture = await Lecture.findOne({
+  _id: req.params.id,
+  school: req.user.school,
+});
   if (!lecture) {
     res.status(404);
     throw new Error('Lecture not found');
@@ -58,7 +67,10 @@ export const updateLecture = asyncHandler(async (req, res) => {
 
 // @route  DELETE /api/lectures/:id
 export const deleteLecture = asyncHandler(async (req, res) => {
-  const lecture = await Lecture.findById(req.params.id);
+  const lecture = await Lecture.findOne({
+  _id: req.params.id,
+  school: req.user.school,
+});
   if (!lecture) {
     res.status(404);
     throw new Error('Lecture not found');

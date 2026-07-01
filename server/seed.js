@@ -9,6 +9,8 @@ import Announcement from './models/Announcement.js';
 import Attendance from './models/Attendance.js';
 import Fee from './models/Fee.js';
 import Note from './models/Note.js';
+import School from './models/School.js'
+import Submission from './models/Submission.js';
 
 dotenv.config();
 
@@ -16,15 +18,27 @@ const run = async () => {
   await connectDB();
   console.log('Clearing existing data...');
   await Promise.all([
-    User.deleteMany(),
-    ClassRoom.deleteMany(),
-    Assignment.deleteMany(),
-    Lecture.deleteMany(),
-    Announcement.deleteMany(),
-    Attendance.deleteMany(),
-    Fee.deleteMany(),
-    Note.deleteMany(),
-  ]);
+  School.deleteMany(),
+  User.deleteMany(),
+  ClassRoom.deleteMany(),
+  Assignment.deleteMany(),
+  Lecture.deleteMany(),
+  Announcement.deleteMany(),
+  Attendance.deleteMany(),
+  Fee.deleteMany(),
+  Note.deleteMany(),
+   Submission.deleteMany(),
+
+]);
+
+console.log("Creating school...");
+
+const school = await School.create({
+  name: "Scholora Demo School",
+  email: "info@scholora-demo.edu",
+  phone: "+91 9876543210",
+  address: "Rajkot, Gujarat",
+});
 
   console.log('Creating users...');
   // NOTE: password hashing happens in the model pre-save hook, so we use .create
@@ -34,6 +48,8 @@ const run = async () => {
     password: 'password123',
     role: 'admin',
     phone: '+91 98765 43210',
+      school: school._id,
+
   });
 
   const teacher1 = await User.create({
@@ -44,6 +60,8 @@ const run = async () => {
     employeeId: 'EMP-1001',
     department: 'Science',
     subjects: ['Physics', 'Mathematics'],
+      school: school._id,
+
   });
 
   const teacher2 = await User.create({
@@ -54,12 +72,16 @@ const run = async () => {
     employeeId: 'EMP-1002',
     department: 'Languages',
     subjects: ['English', 'History'],
+      school: school._id,
+
   });
 
   console.log('Creating classes...');
   const class10 = await ClassRoom.create({
     name: 'Grade 10',
     section: 'A',
+      school: school._id,
+
     classTeacher: teacher1._id,
     subjects: [
       { name: 'Physics', teacher: teacher1._id },
@@ -72,6 +94,8 @@ const run = async () => {
     section: 'B',
     classTeacher: teacher2._id,
     subjects: [{ name: 'Mathematics', teacher: teacher1._id }],
+      school: school._id,
+
   });
 
   console.log('Creating students...');
@@ -84,6 +108,8 @@ const run = async () => {
     classRoom: class10._id,
     guardianName: 'Sunil Mehta',
     guardianPhone: '+91 99887 76655',
+      school: school._id,
+
   });
 
   const student2 = await User.create({
@@ -93,6 +119,8 @@ const run = async () => {
     role: 'student',
     rollNumber: '10A-02',
     classRoom: class10._id,
+      school: school._id,
+
   });
 
   const student3 = await User.create({
@@ -102,6 +130,8 @@ const run = async () => {
     role: 'student',
     rollNumber: '9B-01',
     classRoom: class9._id,
+      school: school._id,
+
   });
 
   class10.students = [student1._id, student2._id];
@@ -118,6 +148,7 @@ const run = async () => {
     createdBy: teacher1._id,
     dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
     maxMarks: 50,
+    school: school._id
   });
 
   await Assignment.create({
@@ -128,6 +159,7 @@ const run = async () => {
     createdBy: teacher2._id,
     dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
     maxMarks: 25,
+    school: school._id
   });
 
   await Lecture.create({
@@ -139,6 +171,7 @@ const run = async () => {
     videoUrl: 'https://www.youtube.com/watch?v=kKKM8Y-u7ds',
     sourceType: 'link',
     durationMinutes: 14,
+    school: school._id
   });
 
   await Announcement.create({
@@ -146,6 +179,7 @@ const run = async () => {
     body: 'Classes resume Monday. Please check your timetable on the portal.',
     audience: 'all',
     createdBy: admin._id,
+    school: school._id
   });
 
   console.log('Creating attendance, fees & notes...');
@@ -160,6 +194,7 @@ const run = async () => {
       { student: student1._id, status: 'present' },
       { student: student2._id, status: 'absent' },
     ],
+    school: school._id
   });
   await Attendance.create({
     classRoom: class10._id,
@@ -170,20 +205,34 @@ const run = async () => {
       { student: student1._id, status: 'present' },
       { student: student2._id, status: 'present' },
     ],
+    school: school._id
   });
 
   await Fee.create([
-    {
-      student: student1._id, classRoom: class10._id, title: 'Term 1 Tuition',
-      amount: 25000, dueDate: new Date(Date.now() + 10 * 86400000),
-      status: 'pending', createdBy: admin._id,
-    },
-    {
-      student: student2._id, classRoom: class10._id, title: 'Term 1 Tuition',
-      amount: 25000, dueDate: new Date(Date.now() + 10 * 86400000),
-      status: 'paid', paidAmount: 25000, paidDate: new Date(), method: 'upi', createdBy: admin._id,
-    },
-  ]);
+  {
+    student: student1._id,
+    classRoom: class10._id,
+    title: "Term 1 Tuition",
+    amount: 25000,
+    dueDate: new Date(Date.now() + 10 * 86400000),
+    status: "pending",
+    createdBy: admin._id,
+    school: school._id,
+  },
+  {
+    student: student2._id,
+    classRoom: class10._id,
+    title: "Term 1 Tuition",
+    amount: 25000,
+    dueDate: new Date(Date.now() + 10 * 86400000),
+    status: "paid",
+    paidAmount: 25000,
+    paidDate: new Date(),
+    method: "upi",
+    createdBy: admin._id,
+    school: school._id,
+  },
+]);
 
   await Note.create({
     title: 'Chapter 5 — Laws of Motion (Summary)',
@@ -194,6 +243,8 @@ const run = async () => {
     fileUrl: 'https://www.physicsclassroom.com/class/newtlaws',
     fileType: 'link',
     fileName: 'External resource',
+        school: school._id,
+
   });
 
   console.log('\n✅ Seed complete. Demo accounts (password: password123):');

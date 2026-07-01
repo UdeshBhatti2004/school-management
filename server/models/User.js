@@ -11,6 +11,12 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
+    /// organize data based on your schools
+    school: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "School",
+      required: true,
+    },
     password: { type: String, required: true, minlength: 6, select: false },
     role: {
       type: String,
@@ -33,6 +39,9 @@ const userSchema = new mongoose.Schema(
     guardianName: { type: String, default: '' },
     guardianPhone: { type: String, default: '' },
   },
+
+
+
   { timestamps: true }
 );
 

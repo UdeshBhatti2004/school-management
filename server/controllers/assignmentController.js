@@ -5,7 +5,9 @@ import Submission from '../models/Submission.js';
 // @route  GET /api/assignments
 // Scoped by role: students see their class; teachers see what they created; admin sees all
 export const getAssignments = asyncHandler(async (req, res) => {
-  const filter = {};
+  const filter = {
+  school: req.user.school,
+};
   if (req.user.role === 'student') {
     if (!req.user.classRoom) return res.json([]);
     filter.classRoom = req.user.classRoom;
@@ -22,9 +24,10 @@ export const getAssignments = asyncHandler(async (req, res) => {
   // For students, attach their own submission status
   if (req.user.role === 'student') {
     const subs = await Submission.find({
-      student: req.user._id,
-      assignment: { $in: assignments.map((a) => a._id) },
-    });
+  student: req.user._id,
+  assignment: { $in: assignments.map((a) => a._id) },
+  school: req.user.school,
+});
     const map = Object.fromEntries(subs.map((s) => [s.assignment.toString(), s]));
     return res.json(
       assignments.map((a) => ({ ...a.toObject(), mySubmission: map[a._id.toString()] || null }))
@@ -36,7 +39,10 @@ export const getAssignments = asyncHandler(async (req, res) => {
 
 // @route  GET /api/assignments/:id
 export const getAssignmentById = asyncHandler(async (req, res) => {
-  const assignment = await Assignment.findById(req.params.id)
+  const assignment = await Assignment.findOne({
+  _id: req.params.id,
+  school: req.user.school,
+})
     .populate('classRoom', 'name section')
     .populate('createdBy', 'name');
   if (!assignment) {
@@ -54,7 +60,11 @@ export const createAssignment = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error('Title, class and due date are required');
   }
-  const assignment = await Assignment.create({ ...req.body, createdBy: req.user._id });
+  const assignment = await Assignment.create({
+  ...req.body,
+  createdBy: req.user._id,
+  school: req.user.school,
+});
   const populated = await Assignment.findById(assignment._id)
     .populate('classRoom', 'name section')
     .populate('createdBy', 'name');
@@ -64,7 +74,10 @@ export const createAssignment = asyncHandler(async (req, res) => {
 // @route  PUT /api/assignments/:id
 // @access teacher (owner), admin
 export const updateAssignment = asyncHandler(async (req, res) => {
-  const assignment = await Assignment.findById(req.params.id);
+  const assignment = await Assignment.findOne({
+  _id: req.params.id,
+  school: req.user.school,
+});
   if (!assignment) {
     res.status(404);
     throw new Error('Assignment not found');
@@ -85,7 +98,10 @@ export const updateAssignment = asyncHandler(async (req, res) => {
 // @route  DELETE /api/assignments/:id
 // @access teacher (owner), admin
 export const deleteAssignment = asyncHandler(async (req, res) => {
-  const assignment = await Assignment.findById(req.params.id);
+const assignment = await Assignment.findOne({
+  _id: req.params.id,
+  school: req.user.school,
+});
   if (!assignment) {
     res.status(404);
     throw new Error('Assignment not found');
@@ -94,7 +110,10 @@ export const deleteAssignment = asyncHandler(async (req, res) => {
     res.status(403);
     throw new Error('You can only delete your own assignments');
   }
-  await Submission.deleteMany({ assignment: assignment._id });
+await Submission.deleteMany({
+  assignment: assignment._id,
+  school: req.user.school,
+});
   await assignment.deleteOne();
   res.json({ message: 'Assignment removed' });
 });

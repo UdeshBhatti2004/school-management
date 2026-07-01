@@ -9,7 +9,9 @@ import Note from '../models/Note.js';
 // @route  GET /api/users?role=teacher|student
 // @access admin
 export const getUsers = asyncHandler(async (req, res) => {
-  const filter = {};
+  const filter = {
+  school: req.user.school,
+};
   if (req.query.role) filter.role = req.query.role;
   if (req.query.search) {
     filter.$or = [
@@ -26,8 +28,10 @@ export const getUsers = asyncHandler(async (req, res) => {
 // @route  GET /api/users/:id
 // @access admin
 export const getUserById = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id).populate('classRoom', 'name section');
-  if (!user) {
+const user = await User.findOne({
+  _id: req.params.id,
+  school: req.user.school,
+}).populate("classRoom", "name section");  if (!user) {
     res.status(404);
     throw new Error('User not found');
   }
@@ -53,7 +57,10 @@ export const createUser = asyncHandler(async (req, res) => {
     throw new Error('A user with that email already exists');
   }
 
-  const user = await User.create(req.body);
+const user = await User.create({
+  ...req.body,
+  school: req.user.school,
+});
 
   // If a student is assigned to a class, keep the classroom roster in sync
   if (user.role === 'student' && user.classRoom) {
@@ -67,8 +74,10 @@ export const createUser = asyncHandler(async (req, res) => {
 // @route  PUT /api/users/:id
 // @access admin
 export const updateUser = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id);
-  if (!user) {
+const user = await User.findOne({
+  _id: req.params.id,
+  school: req.user.school,
+});  if (!user) {
     res.status(404);
     throw new Error('User not found');
   }
@@ -102,8 +111,10 @@ export const updateUser = asyncHandler(async (req, res) => {
 // @route  DELETE /api/users/:id
 // @access admin
 export const deleteUser = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id);
-  if (!user) {
+const user = await User.findOne({
+  _id: req.params.id,
+  school: req.user.school,
+});  if (!user) {
     res.status(404);
     throw new Error('User not found');
   }
@@ -117,15 +128,53 @@ export const deleteUser = asyncHandler(async (req, res) => {
 // @route  GET /api/users/stats/overview
 // @access admin
 export const getStats = asyncHandler(async (req, res) => {
-  const [teachers, students, classes, assignments, lectures, notes, fees] = await Promise.all([
-    User.countDocuments({ role: 'teacher' }),
-    User.countDocuments({ role: 'student' }),
-    ClassRoom.countDocuments(),
-    Assignment.countDocuments(),
-    Lecture.countDocuments(),
-    Note.countDocuments(),
-    Fee.find().select('amount paidAmount'),
-  ]);
-  const outstanding = fees.reduce((s, f) => s + (f.amount - f.paidAmount), 0);
-  res.json({ teachers, students, classes, assignments, lectures, notes, outstanding });
-});
+  const school = req.user.school;
+
+  const [teachers, students, classes, assignments, lectures, notes, fees] =
+    await Promise.all([
+      User.countDocuments({
+        role: "teacher",
+        school,
+      }),
+
+      User.countDocuments({
+        role: "student",
+        school,
+      }),
+
+      ClassRoom.countDocuments({
+        school,
+      }),
+
+      Assignment.countDocuments({
+        school,
+      }),
+
+      Lecture.countDocuments({
+        school,
+      }),
+
+      Note.countDocuments({
+        school,
+      }),
+
+      Fee.find({
+        school,
+      }).select("amount paidAmount"),
+    ]);
+
+  const outstanding = fees.reduce(
+    (sum, fee) => sum + (fee.amount - fee.paidAmount),
+    0
+  );
+
+  res.json({
+    teachers,
+    students,
+    classes,
+    assignments,
+    lectures,
+    notes,
+    outstanding,
+  });
+});;

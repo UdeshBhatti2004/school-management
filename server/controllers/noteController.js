@@ -4,7 +4,9 @@ import cloudinary, { cloudinaryConfigured } from '../config/cloudinary.js';
 
 // @route  GET /api/notes   (role-scoped)
 export const getNotes = asyncHandler(async (req, res) => {
-  const filter = {};
+  const filter = {
+  school: req.user.school,
+};
   if (req.user.role === 'student') {
     if (!req.user.classRoom) return res.json([]);
     filter.classRoom = req.user.classRoom;
@@ -27,7 +29,11 @@ export const createNote = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error('Title and class are required');
   }
-  const note = await Note.create({ ...req.body, createdBy: req.user._id });
+  const note = await Note.create({
+  ...req.body,
+  createdBy: req.user._id,
+  school: req.user.school,
+});
   const populated = await Note.findById(note._id)
     .populate('classRoom', 'name section')
     .populate('createdBy', 'name');
@@ -36,7 +42,10 @@ export const createNote = asyncHandler(async (req, res) => {
 
 // @route  DELETE /api/notes/:id   (teacher owner, admin)
 export const deleteNote = asyncHandler(async (req, res) => {
-  const note = await Note.findById(req.params.id);
+  const note = await Note.findOne({
+  _id: req.params.id,
+  school: req.user.school,
+});
   if (!note) {
     res.status(404);
     throw new Error('Note not found');

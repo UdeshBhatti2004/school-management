@@ -4,6 +4,12 @@ const feeSchema = new mongoose.Schema(
   {
     student: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     classRoom: { type: mongoose.Schema.Types.ObjectId, ref: 'ClassRoom' },
+     /// organize data based on your schools
+        school: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "School",
+          required: true,
+        },
     title: { type: String, required: true }, // e.g. "Term 1 Tuition"
     amount: { type: Number, required: true },
     dueDate: { type: Date, required: true },

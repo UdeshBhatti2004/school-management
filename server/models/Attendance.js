@@ -3,6 +3,12 @@ import mongoose from 'mongoose';
 const attendanceSchema = new mongoose.Schema(
   {
     classRoom: { type: mongoose.Schema.Types.ObjectId, ref: 'ClassRoom', required: true },
+     /// organize data based on your schools
+        school: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "School",
+          required: true,
+        },
     date: { type: String, required: true }, // YYYY-MM-DD for easy unique-per-day
     markedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     subject: { type: String, default: '' },

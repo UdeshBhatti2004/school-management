@@ -4,6 +4,12 @@ const classRoomSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true }, // e.g. "Grade 10"
     section: { type: String, default: 'A' },
+     /// organize data based on your schools
+        school: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "School",
+          required: true,
+        },
     classTeacher: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     students: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     subjects: [

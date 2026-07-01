@@ -4,6 +4,12 @@ const announcementSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
     body: { type: String, required: true },
+     /// organize data based on your schools
+        school: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "School",
+          required: true,
+        },
     audience: {
       type: String,
       enum: ['all', 'teachers', 'students', 'class'],

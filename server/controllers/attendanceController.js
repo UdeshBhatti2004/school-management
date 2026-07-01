@@ -12,17 +12,35 @@ export const markAttendance = asyncHandler(async (req, res) => {
   }
 
   const sheet = await Attendance.findOneAndUpdate(
-    { classRoom, date, subject },
-    { classRoom, date, subject, records, markedBy: req.user._id },
-    { new: true, upsert: true, setDefaultsOnInsert: true }
-  ).populate('records.student', 'name rollNumber');
+  {
+    classRoom,
+    date,
+    subject,
+    school: req.user.school,
+  },
+  {
+    classRoom,
+    date,
+    subject,
+    records,
+    markedBy: req.user._id,
+    school: req.user.school,
+  },
+  {
+    new: true,
+    upsert: true,
+    setDefaultsOnInsert: true,
+  }
+).populate('records.student', 'name rollNumber');
 
   res.status(201).json(sheet);
 });
 
 // @route  GET /api/attendance?classRoom=&date=   (teacher, admin)
 export const getAttendance = asyncHandler(async (req, res) => {
-  const filter = {};
+  const filter = {
+  school: req.user.school,
+};
   if (req.query.classRoom) filter.classRoom = req.query.classRoom;
   if (req.query.date) filter.date = req.query.date;
 
@@ -39,7 +57,10 @@ export const getAttendance = asyncHandler(async (req, res) => {
 export const getMyAttendance = asyncHandler(async (req, res) => {
   if (!req.user.classRoom) return res.json({ summary: { present: 0, absent: 0, late: 0, total: 0, percent: 0 }, history: [] });
 
-  const sheets = await Attendance.find({ classRoom: req.user.classRoom })
+  const sheets = await Attendance.find({
+  classRoom: req.user.classRoom,
+  school: req.user.school,
+})
     .populate('markedBy', 'name')
     .sort({ date: -1 });
 
@@ -73,12 +94,18 @@ export const getClassSummary = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error('classRoom is required');
   }
-  const cls = await ClassRoom.findById(classRoom).populate('students', 'name rollNumber');
+  const cls = await ClassRoom.findOne({
+  _id: classRoom,
+  school: req.user.school,
+}).populate('students', 'name rollNumber');
   if (!cls) {
     res.status(404);
     throw new Error('Class not found');
   }
-  const sheets = await Attendance.find({ classRoom });
+  const sheets = await Attendance.find({
+  classRoom,
+  school: req.user.school,
+});
 
   const summary = cls.students.map((s) => {
     let present = 0, total = 0;

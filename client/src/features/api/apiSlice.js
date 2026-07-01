@@ -9,6 +9,7 @@ const rawBaseQuery = fetchBaseQuery({
     return headers;
   },
 });
+console.log(import.meta.env.VITE_API_URL);
 
 // Wraps the base query so an expired/invalid token clears auth state and
 // bounces to /login the same way the old axios interceptor did.

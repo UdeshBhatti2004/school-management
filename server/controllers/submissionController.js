@@ -5,7 +5,10 @@ import Assignment from '../models/Assignment.js';
 // @route  POST /api/assignments/:id/submit
 // @access student
 export const submitAssignment = asyncHandler(async (req, res) => {
-  const assignment = await Assignment.findById(req.params.id);
+const assignment = await Assignment.findOne({
+  _id: req.params.id,
+  school: req.user.school,
+});
   if (!assignment) {
     res.status(404);
     throw new Error('Assignment not found');
@@ -21,9 +24,10 @@ export const submitAssignment = asyncHandler(async (req, res) => {
 
   // Upsert: a student may resubmit until graded
   const existing = await Submission.findOne({
-    assignment: assignment._id,
-    student: req.user._id,
-  });
+  assignment: assignment._id,
+  student: req.user._id,
+  school: req.user.school,
+});
 
   if (existing) {
     if (existing.status === 'graded') {
@@ -36,17 +40,21 @@ export const submitAssignment = asyncHandler(async (req, res) => {
   }
 
   const submission = await Submission.create({
-    assignment: assignment._id,
-    student: req.user._id,
-    ...payload,
-  });
+  assignment: assignment._id,
+  student: req.user._id,
+  school: req.user.school,
+  ...payload,
+});
   res.status(201).json(submission);
 });
 
 // @route  GET /api/assignments/:id/submissions
 // @access teacher (owner), admin
 export const getSubmissions = asyncHandler(async (req, res) => {
-  const assignment = await Assignment.findById(req.params.id);
+const assignment = await Assignment.findOne({
+  _id: req.params.id,
+  school: req.user.school,
+});
   if (!assignment) {
     res.status(404);
     throw new Error('Assignment not found');
@@ -55,8 +63,10 @@ export const getSubmissions = asyncHandler(async (req, res) => {
     res.status(403);
     throw new Error('You can only view submissions for your own assignments');
   }
-  const submissions = await Submission.find({ assignment: assignment._id })
-    .populate('student', 'name email rollNumber')
+const submissions = await Submission.find({
+  assignment: assignment._id,
+  school: req.user.school,
+}).populate('student', 'name email rollNumber')
     .sort({ createdAt: -1 });
   res.json(submissions);
 });
@@ -64,7 +74,10 @@ export const getSubmissions = asyncHandler(async (req, res) => {
 // @route  PUT /api/submissions/:id/grade
 // @access teacher, admin
 export const gradeSubmission = asyncHandler(async (req, res) => {
-  const submission = await Submission.findById(req.params.id);
+const submission = await Submission.findOne({
+  _id: req.params.id,
+  school: req.user.school,
+});
   if (!submission) {
     res.status(404);
     throw new Error('Submission not found');

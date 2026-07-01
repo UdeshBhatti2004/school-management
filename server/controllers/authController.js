@@ -14,6 +14,7 @@ const sanitize = (user) => ({
   subjects: user.subjects,
   rollNumber: user.rollNumber,
   classRoom: user.classRoom,
+    school: user.school,   
 });
 
 // @route  POST /api/auth/login
