@@ -16,13 +16,13 @@ const statusTone = { paid: 'green', partial: 'amber', pending: 'slate' };
 
 export default function FeesManager() {
   const { data: fees, isLoading: loading } = useGetFeesQuery(undefined, {
-  refetchOnMountOrArgChange: true,
-});
+    refetchOnMountOrArgChange: true,
+  });
   const { data: summary } = useGetFeeSummaryQuery();
   const { data: classes } = useGetClassesQuery();
   const { data: students } = useGetUsersQuery('student', {
-  refetchOnMountOrArgChange: true,
-});
+    refetchOnMountOrArgChange: true,
+  });
   const [createFee] = useCreateFeeMutation();
   const [recordPaymentMutation] = useRecordPaymentMutation();
   const [deleteFee] = useDeleteFeeMutation();
@@ -40,9 +40,36 @@ export default function FeesManager() {
   const [payFor, setPayFor] = useState(null);
   const [payAmount, setPayAmount] = useState('');
   const [payMethod, setPayMethod] = useState('upi');
+  const [payRemarks, setPayRemarks] = useState("");
 
   const handleCreate = async (e) => {
     e.preventDefault();
+    if (!form.title.trim()) {
+      toast.error("Fee title is required.");
+      return;
+    }
+
+    if (Number(form.amount) <= 0) {
+      toast.error("Amount must be greater than 0.");
+      return;
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+
+    if (form.dueDate < today) {
+      toast.error("Due date cannot be in the past.");
+      return;
+    }
+
+    if (target === "student" && !form.student) {
+      toast.error("Please select a student.");
+      return;
+    }
+
+    if (target === "class" && !form.issueToClass) {
+      toast.error("Please select a class.");
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
@@ -67,12 +94,34 @@ export default function FeesManager() {
     setPayFor(fee);
     setPayAmount(String(fee.amount - fee.paidAmount));
     setPayMethod('upi');
+    setPayRemarks("");
   };
 
   const recordPayment = async () => {
+
+    if (!payAmount || Number(payAmount) <= 0) {
+      toast.error("Enter a valid payment amount.");
+      return;
+    }
+
+    const outstanding = payFor.amount - payFor.paidAmount;
+
+    if (Number(payAmount) > outstanding) {
+      toast.error(`Outstanding balance is ${inr(outstanding)}.`);
+      return;
+    }
+
     try {
-      await recordPaymentMutation({ id: payFor._id, paidAmount: Number(payAmount), method: payMethod }).unwrap();
+      await recordPaymentMutation({
+        id: payFor._id,
+        paidAmount: Number(payAmount),
+        method: payMethod,
+        remarks: payRemarks,
+      }).unwrap();
       toast.success('Payment recorded');
+      setPayAmount("");
+      setPayMethod("upi");
+      setPayRemarks("");
       setPayFor(null);
     } catch (err) {
       toast.error(getErrMsg(err));
@@ -138,21 +187,25 @@ export default function FeesManager() {
                       <td className="px-5 py-3.5 text-ink-500">{fmt(f.dueDate)}</td>
                       <td className="px-5 py-3.5"><Badge tone={statusTone[f.status]} className="capitalize">{f.status}</Badge></td>
                       {/* Replace the desktop actions td with this */}
-<td className="px-5 py-3.5 text-right whitespace-nowrap">
-  <div className="flex justify-end items-center gap-2">
-    {f.status !== 'paid' && (
-      <Button size="sm" variant="secondary" onClick={() => openPay(f)}>
-        Record payment
-      </Button>
-    )}
-    <button 
-      onClick={() => remove(f)} 
-      className="rounded-lg p-2 text-ink-400 hover:bg-rose-50 hover:text-rose-600"
-    >
-      <Trash2 size={15} />
-    </button>
-  </div>
-</td>
+                      <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                        <div className="flex justify-end items-center gap-2">
+                          {f.status !== 'paid' && (
+                            <Button size="sm" variant="secondary" onClick={() => openPay(f)}>
+                              Record payment
+                            </Button>
+                          )}
+                          <button
+                            disabled={f.payments?.length > 0}
+                            onClick={() => remove(f)}
+                            className={`rounded-lg p-2 ${f.payments?.length > 0
+                                ? "cursor-not-allowed opacity-40"
+                                : "text-ink-400 hover:bg-rose-50 hover:text-rose-600"
+                              }`}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </td>
                     </motion.tr>
                   ))}
                 </tbody>
@@ -243,6 +296,21 @@ export default function FeesManager() {
               <Input type="date" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} required />
             </div>
           </div>
+          <div>
+            <Label>Notes (Optional)</Label>
+
+            <Input
+              value={form.notes}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  notes: e.target.value,
+                })
+              }
+              placeholder="Optional notes..."
+              maxLength={500}
+            />
+          </div>
         </form>
       </Modal>
 
@@ -258,6 +326,12 @@ export default function FeesManager() {
             <div className="rounded-lg bg-slate-50 p-3 text-sm">
               <div className="flex justify-between"><span className="text-ink-500">Total</span><span className="font-medium">{inr(payFor.amount)}</span></div>
               <div className="flex justify-between"><span className="text-ink-500">Already paid</span><span className="font-medium">{inr(payFor.paidAmount)}</span></div>
+              <div className="flex justify-between">
+                <span className="text-ink-500">Outstanding</span>
+                <span className="font-semibold text-rose-600">
+                  {inr(payFor.amount - payFor.paidAmount)}
+                </span>
+              </div>
             </div>
             <div>
               <Label>Amount received (₹)</Label>
@@ -266,11 +340,28 @@ export default function FeesManager() {
             <div>
               <Label>Method</Label>
               <Select value={payMethod} onChange={(e) => setPayMethod(e.target.value)}>
+                <option value="cheque">Cheque</option>
                 <option value="upi">UPI</option>
                 <option value="cash">Cash</option>
                 <option value="card">Card</option>
                 <option value="bank">Bank transfer</option>
               </Select>
+
+            </div>
+
+            <div>
+              <Label>Remarks (Optional)</Label>
+
+              <Input
+                value={payRemarks}
+                onChange={(e) => setPayRemarks(e.target.value)}
+                placeholder="Cash received / UPI Ref / Cheque No..."
+                maxLength={500}
+              />
+
+              <p className="mt-1 text-xs text-ink-400">
+                {payRemarks.length}/500
+              </p>
             </div>
           </div>
         )}
@@ -283,11 +374,13 @@ export default function FeesManager() {
         title={selectedFee?.student?.name || "Fee Details"}
         description={selectedFee?.title}
         maxWidth="max-w-3xl"
-        footer={
+       footer={
+  selectedFee && (
           <div className="flex w-full items-center justify-between">
             <div className="flex items-center gap-2">
               <Button
                 variant="danger"
+                disabled={selectedFee?.payments?.length > 0}
                 className="h-9 px-3 text-xs"
                 onClick={() => {
                   setViewOpen(false);
@@ -319,6 +412,7 @@ export default function FeesManager() {
               Done
             </Button>
           </div>
+  )
         }
       >
         {selectedFee && (
@@ -345,6 +439,26 @@ export default function FeesManager() {
                 </div>
 
                 <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-xs text-slate-500">
+                    Remaining
+                  </span>
+
+                  <span className="text-sm font-semibold text-rose-600">
+                    {inr(selectedFee.amount - selectedFee.paidAmount)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-xs text-slate-500">
+                    Payments
+                  </span>
+
+                  <span className="text-sm font-medium">
+                    {selectedFee.payments?.length || 0}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between px-4 py-2.5">
                   <span className="text-xs text-slate-500">Due Date</span>
                   <span className="text-sm font-medium text-ink-500">{fmt(selectedFee.dueDate)}</span>
                 </div>
@@ -355,8 +469,49 @@ export default function FeesManager() {
                 </div>
               </div>
             </div>
-            
-            {selectedFee.notes && (
+
+           {selectedFee?.payments?.length > 0 && (
+              <div>
+                <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+                  Payment History
+                </h3>
+
+                <div className="space-y-3">
+                  {selectedFee?.payments?.map((payment, index) => (
+                    <div
+                      key={index}
+                      className="rounded-lg border border-slate-100 p-3"
+                    >
+                      <div className="flex justify-between">
+                        <span className="font-semibold">
+                          {inr(payment.amount)}
+                        </span>
+
+                        <Badge tone="emerald">
+                          {payment.method}
+                        </Badge>
+                      </div>
+
+                      <p className="text-xs text-slate-500 mt-1">
+                        {fmt(payment.receivedAt)}
+                      </p>
+
+                      <p className="text-xs text-slate-400 mt-1">
+                        Received by {payment.receivedBy?.name || "Admin"}
+                      </p>
+
+                      {payment.remarks && (
+                        <p className="mt-2 text-xs text-slate-600">
+                          {payment.remarks}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedFee?.notes && (
               <div>
                 <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
                   Notes

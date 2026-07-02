@@ -14,12 +14,24 @@ const schoolSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
+      validate: {
+        validator(value) {
+          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+        },
+        message: "Please enter a valid email address.",
+      },
     },
-
     phone: {
-      type: String,
-      default: "",
+  type: String,
+  required: [true, "School phone number is required"],
+  trim: true,
+  validate: {
+    validator: function (value) {
+      return /^[6-9]\d{9}$/.test(value);
     },
+    message: "Please enter a valid 10-digit phone number.",
+  },
+},
 
     address: {
       type: String,

@@ -10,6 +10,12 @@ const userSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
+      validate: {
+        validator(value) {
+          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+        },
+        message: "Please enter a valid email address.",
+      },
     },
     /// organize data based on your schools
     school: {
@@ -25,7 +31,17 @@ const userSchema = new mongoose.Schema(
       default: 'student',
     },
     avatar: { type: String, default: '' },
-    phone: { type: String, default: '' },
+    phone: {
+      type: String,
+      trim: true,
+      default: "",
+      validate: {
+        validator(value) {
+          return value === "" || /^[6-9]\d{9}$/.test(value);
+        },
+        message: "Please enter a valid 10-digit phone number.",
+      },
+    },
     isActive: { type: Boolean, default: true },
 
     // Teacher-specific
@@ -37,7 +53,17 @@ const userSchema = new mongoose.Schema(
     rollNumber: { type: String, default: '' },
     classRoom: { type: mongoose.Schema.Types.ObjectId, ref: 'ClassRoom' },
     guardianName: { type: String, default: '' },
-    guardianPhone: { type: String, default: '' },
+    guardianPhone: {
+      type: String,
+      trim: true,
+      default: "",
+      validate: {
+        validator(value) {
+          return value === "" || /^[6-9]\d{9}$/.test(value);
+        },
+        message: "Please enter a valid guardian phone number.",
+      },
+    },
   },
 
 

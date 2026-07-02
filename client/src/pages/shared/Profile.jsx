@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { UserCircle, KeyRound } from 'lucide-react';
+import { UserCircle, KeyRound, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../../features/auth/authSlice';
@@ -8,11 +8,16 @@ import { PageHeader } from '../../components/ui/blocks';
 import { Button, Input, Label, Card, Spinner, Badge } from '../../components/ui/primitives';
 import { getErrMsg } from '../../lib/getErrMsg';
 import { useEffect } from 'react';
+import { isValidPhone } from "../../lib/validators";
 
 export default function Profile() {
   const user = useSelector(selectCurrentUser);
   const [updateProfile] = useUpdateProfileMutation();
   const [changePassword] = useChangePasswordMutation();
+
+ const [errors, setErrors] = useState({
+  phone: "",
+});
 
   const [profile, setProfile] = useState({
   name: user?.name || '',
@@ -21,9 +26,33 @@ export default function Profile() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [pw, setPw] = useState({ currentPassword: '', newPassword: '' });
   const [savingPw, setSavingPw] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+const [showNewPassword, setShowNewPassword] = useState(false);
+
+  const validatePhone = () => {
+  setErrors((prev) => ({
+    ...prev,
+    phone:
+      profile.phone && !isValidPhone(profile.phone)
+        ? "Please enter a valid phone number."
+        : "",
+  }));
+};
+
 
   const saveProfile = async (e) => {
     e.preventDefault();
+
+     if (profile.phone && !isValidPhone(profile.phone)) {
+  toast.error("Please enter a valid phone number.");
+  return;
+}
+
+if (pw.currentPassword === pw.newPassword) {
+  toast.error("New password must be different from the current password.");
+  return;
+}
+
     setSavingProfile(true);
     try {
       await updateProfile(profile).unwrap();
@@ -121,7 +150,19 @@ export default function Profile() {
               </div>
               <div>
                 <Label>Phone</Label>
-                <Input value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} />
+                <Input
+  type="tel"
+  inputMode="numeric"
+  maxLength={10}
+  value={profile.phone}
+  onChange={(e) =>
+    setProfile({
+      ...profile,
+      phone: e.target.value.replace(/\D/g, "").slice(0, 10),
+    })
+  }
+  onBlur={validatePhone}
+/>
               </div>
               <div className="flex justify-end">
                 <Button type="submit" disabled={savingProfile}>
@@ -139,11 +180,56 @@ export default function Profile() {
             <form onSubmit={savePassword} className="space-y-4">
               <div>
                 <Label>Current password</Label>
-                <Input type="password" value={pw.currentPassword} onChange={(e) => setPw({ ...pw, currentPassword: e.target.value })} required />
+                <div className="relative">
+  <Input
+    type={showCurrentPassword ? "text" : "password"}
+    value={pw.currentPassword}
+    onChange={(e) =>
+      setPw({ ...pw, currentPassword: e.target.value })
+    }
+    required
+    className="pr-10"
+  />
+
+  <button
+    type="button"
+    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+    className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-700"
+  >
+    {showCurrentPassword ? (
+      <EyeOff size={18} />
+    ) : (
+      <Eye size={18} />
+    )}
+  </button>
+</div>
               </div>
               <div>
                 <Label>New password</Label>
-                <Input type="password" value={pw.newPassword} onChange={(e) => setPw({ ...pw, newPassword: e.target.value })} required minLength={6} />
+                <div className="relative">
+  <Input
+    type={showNewPassword ? "text" : "password"}
+    value={pw.newPassword}
+    onChange={(e) =>
+      setPw({ ...pw, newPassword: e.target.value })
+    }
+    required
+    minLength={6}
+    className="pr-10"
+  />
+
+  <button
+    type="button"
+    onClick={() => setShowNewPassword(!showNewPassword)}
+    className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-700 transition-colors"
+  >
+    {showNewPassword ? (
+      <EyeOff size={18} />
+    ) : (
+      <Eye size={18} />
+    )}
+  </button>
+</div>
                 <p className="mt-1 text-xs text-ink-400">At least 6 characters.</p>
               </div>
               <div className="flex justify-end">

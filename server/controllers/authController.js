@@ -157,11 +157,18 @@ export const changePassword = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error('New password must be at least 6 characters');
   }
+
+if (currentPassword === newPassword) {
+  res.status(400);
+  throw new Error("New password must be different from the current password.");
+}
+
   const user = await User.findById(req.user._id).select('+password');
+
   if (!(await user.matchPassword(currentPassword))) {
-    res.status(401);
-    throw new Error('Current password is incorrect');
-  }
+  res.status(400);
+  throw new Error("Current password is incorrect");
+}
   user.password = newPassword;
   await user.save();
   res.json({ message: 'Password updated successfully' });

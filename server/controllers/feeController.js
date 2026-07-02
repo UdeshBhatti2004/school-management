@@ -16,7 +16,8 @@ export const getFees = asyncHandler(async (req, res) => {
   }
 
   const fees = await Fee.find(filter)
-    .populate('student', 'name rollNumber email')
+    .populate("student", "name rollNumber email")
+.populate("payments.receivedBy", "name")
     .populate('classRoom', 'name section')
     .sort({ dueDate: -1 });
   res.json(fees);
@@ -97,12 +98,61 @@ const fee = await Fee.findOne({
     res.status(404);
     throw new Error('Fee record not found');
   }
-  const { paidAmount, method } = req.body;
-  const amount = Number(paidAmount ?? fee.amount);
-  fee.paidAmount = amount;
-  fee.method = method || fee.method;
-  fee.paidDate = new Date();
-  fee.status = amount >= fee.amount ? 'paid' : amount > 0 ? 'partial' : 'pending';
+  const {
+  paidAmount,
+  method,
+  remarks = "",
+} = req.body;
+
+const amount = Number(paidAmount);
+
+const allowedMethods = [
+  "cash",
+  "upi",
+  "bank",
+  "cheque",
+  "card",
+];
+
+if (!allowedMethods.includes(method)) {
+  res.status(400);
+  throw new Error("Invalid payment method.");
+}
+ 
+ if (isNaN(amount) || amount <= 0) {
+  res.status(400);
+  throw new Error("Payment amount must be greater than 0.");
+}
+
+const outstanding = fee.amount - fee.paidAmount;
+
+if (amount > outstanding) {
+  res.status(400);
+  throw new Error(
+    `Payment exceeds outstanding balance. Remaining balance is ₹${outstanding}.`
+  );
+}
+
+if (fee.status === "paid") {
+  res.status(400);
+  throw new Error("This fee has already been paid.");
+}
+
+fee.payments.push({
+  amount,
+  method,
+  remarks,
+  receivedBy: req.user._id,
+});
+
+fee.paidAmount += amount;
+
+if (fee.paidAmount >= fee.amount) {
+  fee.status = "paid";
+} else {
+  fee.status = "partial";
+}
+
   await fee.save();
   res.json(fee);
 });
@@ -110,17 +160,34 @@ const fee = await Fee.findOne({
 // @route  PUT /api/fees/:id   (admin) — edit
 export const updateFee = asyncHandler(async (req, res) => {
   const fee = await Fee.findOne({
-  _id: req.params.id,
-  school: req.user.school,
-});
+    _id: req.params.id,
+    school: req.user.school,
+  });
+
   if (!fee) {
     res.status(404);
-    throw new Error('Fee record not found');
+    throw new Error("Fee record not found");
   }
-  ['title', 'amount', 'dueDate', 'notes', 'status'].forEach((f) => {
+
+  if (fee.status === "paid") {
+    res.status(400);
+    throw new Error("Paid fees cannot be edited.");
+  }
+
+  ['title', 'amount', 'dueDate', 'notes',].forEach((f) => {
     if (req.body[f] !== undefined) fee[f] = req.body[f];
   });
+
+  // ✅ Add it here
+  if (fee.amount < fee.paidAmount) {
+    res.status(400);
+    throw new Error(
+      "Fee amount cannot be less than the amount already paid."
+    );
+  }
+
   await fee.save();
+
   res.json(fee);
 });
 
@@ -134,6 +201,14 @@ export const deleteFee = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('Fee record not found');
   }
+
+  if (fee.paidAmount > 0) {
+  res.status(400);
+  throw new Error(
+    "Fees with recorded payments cannot be deleted."
+  );
+}
+
   await fee.deleteOne();
   res.json({ message: 'Fee record removed' });
 });

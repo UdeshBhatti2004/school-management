@@ -8,6 +8,7 @@ import { useLoginMutation } from '../features/auth/authApi';
 import { selectCurrentUser } from '../features/auth/authSlice';
 import { Button, Input, Label, Spinner } from '../components/ui/primitives';
 import { getErrMsg } from '../lib/getErrMsg';
+import { isValidEmail } from "../lib/validators";
 
 export default function Login() {
   const user = useSelector(selectCurrentUser);
@@ -18,10 +19,32 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [login, { isLoading }] = useLoginMutation();
 
+  const [errors, setErrors] = useState({
+    email: "",
+  });
+
   if (user) return <Navigate to="/app" replace />;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+if (!isValidEmail(email)) {
+  setErrors((prev) => ({
+    ...prev,
+    email: "Please enter a valid email address.",
+  }));
+
+  toast.error("Please enter a valid email address.");
+  return;
+}
+
+if (!password.trim()) {
+  toast.error("Password is required.");
+  return;
+}
+
     try {
       await login({
         email,
@@ -33,6 +56,17 @@ export default function Login() {
       toast.error(getErrMsg(err));
     }
   };
+
+
+ const validateEmail = () => {
+  setErrors((prev) => ({
+    ...prev,
+    email:
+      email && !isValidEmail(email)
+        ? "Please enter a valid email address."
+        : "",
+  }));
+};
 
   return (
     <div className="flex min-h-screen">
@@ -97,15 +131,22 @@ export default function Login() {
               <div className="relative">
                 <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
                 <Input
-                  id="email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@school.edu"
-                  className="pl-9"
-                />
+  id="email"
+  type="email"
+  required
+  value={email}
+  onChange={(e) => setEmail(e.target.value)}
+  onBlur={validateEmail}
+  placeholder="you@school.edu"
+  className="pl-9"
+/>
               </div>
+
+              {errors.email && (
+                <p className="text-xs text-rose-600">
+                  {errors.email}
+                </p>
+              )}
             </div>
             <div>
               <Label htmlFor="password">Password</Label>

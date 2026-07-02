@@ -19,12 +19,20 @@ import { useRegisterMutation } from '../features/auth/authApi';
 
 import { Button, Input, Label, Spinner } from '../components/ui/primitives';
 import { getErrMsg } from '../lib/getErrMsg';
+import { isValidEmail, isValidPhone } from "../lib/validators";
+
+
 
 export default function Register() {
   const navigate = useNavigate();
   const user = useSelector(selectCurrentUser);
 
   const [register, { isLoading }] = useRegisterMutation();
+  const [errors, setErrors] = useState({
+    phone: "",
+    schoolEmail: "",
+    adminEmail: "",
+  });
 
   const [form, setForm] = useState({
     school: {
@@ -60,10 +68,61 @@ export default function Register() {
         [key]: value,
       },
     }));
+
+    
   };
+
+
+ const validateSchoolEmail = () => {
+  setErrors((prev) => ({
+    ...prev,
+    schoolEmail:
+      form.school.email && !isValidEmail(form.school.email)
+        ? "Please enter a valid school email."
+        : "",
+  }));
+};
+
+const validateAdminEmail = () => {
+  setErrors((prev) => ({
+    ...prev,
+    adminEmail:
+      form.admin.email && !isValidEmail(form.admin.email)
+        ? "Please enter a valid admin email."
+        : "",
+  }));
+};
+
+const validatePhone = () => {
+  setErrors((prev) => ({
+    ...prev,
+    phone:
+      form.school.phone && !isValidPhone(form.school.phone)
+        ? "Please enter a valid 10-digit phone number."
+        : "",
+  }));
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+const newErrors = {
+  schoolEmail: !isValidEmail(form.school.email)
+    ? "Please enter a valid school email."
+    : "",
+  adminEmail: !isValidEmail(form.admin.email)
+    ? "Please enter a valid administrator email."
+    : "",
+  phone: !isValidPhone(form.school.phone)
+    ? "Please enter a valid 10-digit phone number."
+    : "",
+};
+
+setErrors(newErrors);
+
+if (newErrors.schoolEmail || newErrors.adminEmail || newErrors.phone) {
+  toast.error("Please correct the highlighted fields.");
+  return;
+}
 
     try {
       await register(form).unwrap();
@@ -174,14 +233,23 @@ export default function Register() {
                     <div className="relative group">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 group-focus-within:text-brand-500 transition-colors" size={15} />
                       <Input
-                        type="email"
-                        className="pl-9 h-9.5 text-sm rounded-lg"
-                        placeholder="info@school.com"
-                        value={form.school.email}
-                        onChange={(e) => updateSchool('email', e.target.value)}
-                        required
-                      />
+  type="email"
+  className="pl-9 h-9.5 text-sm rounded-lg"
+  placeholder="info@school.com"
+  value={form.school.email}
+  onChange={(e) => updateSchool("email", e.target.value)}
+  onBlur={validateSchoolEmail}
+  required
+/>
                     </div>
+
+                    {errors.schoolEmail && (
+                      <p className="text-xs text-rose-600">
+                        {errors.schoolEmail}
+                      </p>
+                    )}
+
+
                   </div>
 
                   <div className="space-y-1">
@@ -189,13 +257,27 @@ export default function Register() {
                     <div className="relative group">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 group-focus-within:text-brand-500 transition-colors" size={15} />
                       <Input
-                        className="pl-9 h-9.5 text-sm rounded-lg"
-                        placeholder="+1 (555) 000-0000"
-                        value={form.school.phone}
-                        onChange={(e) => updateSchool('phone', e.target.value)}
-                        required
-                      />
+  type="tel"
+  inputMode="numeric"
+  autoComplete="tel"
+  maxLength={10}
+  className="pl-9 h-9.5 text-sm rounded-lg"
+  placeholder="9876543210"
+  value={form.school.phone}
+  onChange={(e) =>
+    updateSchool("phone", e.target.value.replace(/\D/g, "").slice(0, 10))
+  }
+  onBlur={validatePhone}
+  required
+/>
+
                     </div>
+                    {errors.phone && (
+                      <p className="text-xs text-rose-600">
+                        {errors.phone}
+                      </p>
+                    )}
+
                   </div>
 
                   <div className="space-y-1">
@@ -222,18 +304,24 @@ export default function Register() {
 
                 <div className="space-y-3.5">
                   <div className="space-y-1">
-                    <Label className="text-xs font-semibold text-ink-700">Full Name</Label>
-                    <div className="relative group">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 group-focus-within:text-brand-500 transition-colors" size={15} />
-                      <Input
-                        className="pl-9 h-9.5 text-sm rounded-lg"
-                        placeholder="John Doe"
-                        value={form.admin.name}
-                        onChange={(e) => updateAdmin('name', e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
+                    <Label className="text-xs font-semibold text-ink-700">
+  Full Name
+</Label>
+
+<div className="relative group">
+  <User
+    className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 group-focus-within:text-brand-500 transition-colors"
+    size={15}
+  />
+
+  <Input
+    className="pl-9 h-9.5 text-sm rounded-lg"
+    placeholder="John Doe"
+    value={form.admin.name}
+    onChange={(e) => updateAdmin("name", e.target.value)}
+    required
+  />
+</div>                  </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div className="space-y-1">
@@ -241,14 +329,20 @@ export default function Register() {
                       <div className="relative group">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400 group-focus-within:text-brand-500 transition-colors" size={15} />
                         <Input
-                          type="email"
-                          className="pl-9 h-9.5 text-sm rounded-lg"
-                          placeholder="admin@school.com"
-                          value={form.admin.email}
-                          onChange={(e) => updateAdmin('email', e.target.value)}
-                          required
-                        />
+  type="email"
+  className="pl-9 h-9.5 text-sm rounded-lg"
+  placeholder="admin@school.com"
+  value={form.admin.email}
+  onChange={(e) => updateAdmin("email", e.target.value)}
+  onBlur={validateAdminEmail}
+  required
+/>
                       </div>
+                      {errors.adminEmail && (
+                        <p className="text-xs text-rose-600">
+                          {errors.adminEmail}
+                        </p>
+                      )}
                     </div>
 
                     <div className="space-y-1">

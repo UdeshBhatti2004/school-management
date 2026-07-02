@@ -15,8 +15,39 @@ const feeSchema = new mongoose.Schema(
     dueDate: { type: Date, required: true },
     status: { type: String, enum: ['pending', 'paid', 'partial'], default: 'pending' },
     paidAmount: { type: Number, default: 0 },
-    paidDate: { type: Date },
-    method: { type: String, default: '' }, // cash, upi, card, bank
+    payments: [
+  {
+    amount: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+
+    method: {
+      type: String,
+      enum: ["cash", "upi", "bank", "cheque", "card"],
+      required: true,
+    },
+
+    remarks: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 500,
+    },
+
+    receivedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    receivedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+], // cash, upi, card, bank
     notes: { type: String, default: '' },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   },

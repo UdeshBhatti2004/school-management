@@ -17,11 +17,19 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
   const result = await rawBaseQuery(args, api, extraOptions);
 
   if (result.error?.status === 401 && api.getState().auth.token) {
+  const message = result.error?.data?.message || "";
+
+  if (
+    message.toLowerCase().includes("token") ||
+    message.toLowerCase().includes("not authorized")
+  ) {
     api.dispatch(logout());
-    if (!window.location.pathname.startsWith('/login')) {
-      window.location.href = '/login';
+
+    if (!window.location.pathname.startsWith("/login")) {
+      window.location.href = "/login";
     }
   }
+}
 
   return result;
 };
