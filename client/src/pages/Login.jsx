@@ -1,46 +1,37 @@
 import { useState } from 'react';
-import { useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { GraduationCap, Mail, Lock, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useAuth } from '../context/AuthContext';
+import { useSelector } from 'react-redux';
+import { useLoginMutation } from '../features/auth/authApi';
+import { selectCurrentUser } from '../features/auth/authSlice';
 import { Button, Input, Label, Spinner } from '../components/ui/primitives';
 import { getErrMsg } from '../lib/getErrMsg';
 
-
-const demoAccounts = [
-  { role: 'Admin', email: 'admin@school.edu' },
-  { role: 'Teacher', email: 'teacher@school.edu' },
-  { role: 'Student', email: 'student@school.edu' },
-];
-
 export default function Login() {
-  const { user, login } = useAuth();
+  const user = useSelector(selectCurrentUser);
+
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [login, { isLoading }] = useLoginMutation();
 
   if (user) return <Navigate to="/app" replace />;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
     try {
-      await login(email, password);
+      await login({
+        email,
+        password,
+      }).unwrap();
       const dest = location.state?.from?.pathname || '/app';
       navigate(dest, { replace: true });
     } catch (err) {
       toast.error(getErrMsg(err));
-    } finally {
-      setSubmitting(false);
     }
-  };
-
-  const fillDemo = (demoEmail) => {
-    setEmail(demoEmail);
-    setPassword('password123');
   };
 
   return (
@@ -132,8 +123,10 @@ export default function Login() {
               </div>
             </div>
 
-            <Button type="submit" size="lg" className="w-full" disabled={submitting}>
-              {submitting ? <Spinner className="h-4 w-4 border-white/40 border-t-white" /> : (
+            <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
+              {isLoading ? (
+                <Spinner className="h-4 w-4 border-white/40 border-t-white" />
+              ) : (
                 <>
                   Sign in <ArrowRight size={16} />
                 </>
@@ -141,23 +134,26 @@ export default function Login() {
             </Button>
           </form>
 
-          <div className="mt-8 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-ink-400">
-              Demo accounts · password123
-            </p>
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              {demoAccounts.map((acc) => (
-                <button
-                  key={acc.email}
-                  type="button"
-                  onClick={() => fillDemo(acc.email)}
-                  className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-medium text-ink-600 transition-colors hover:border-brand-300 hover:text-brand-700"
-                >
-                  {acc.role}
-                </button>
-              ))}
-            </div>
+          {/* Divider */}
+          <div className="my-6 flex items-center">
+            <div className="h-px flex-1 bg-slate-200" />
+            <span className="px-3 text-[10px] font-medium uppercase tracking-wider text-ink-400">
+              OR
+            </span>
+            <div className="h-px flex-1 bg-slate-200" />
           </div>
+
+          {/* Inline clean call-to-action */}
+          <p className="text-center text-sm text-ink-500">
+            New to Scholora?{' '}
+            <Link
+              to="/register"
+              className="font-medium text-brand-600 transition-colors hover:text-brand-700 hover:underline inline-flex items-center gap-0.5"
+            >
+              Register your school
+              <ArrowRight size={14} className="mt-0.5" />
+            </Link>
+          </p>
         </motion.div>
       </div>
     </div>

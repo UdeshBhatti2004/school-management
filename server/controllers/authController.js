@@ -1,6 +1,9 @@
 import asyncHandler from 'express-async-handler';
 import User from '../models/User.js';
+import School from '../models/School.js';
 import generateToken from '../utils/generateToken.js';
+import mongoose from 'mongoose';
+
 
 const sanitize = (user) => ({
   _id: user._id,
@@ -16,6 +19,98 @@ const sanitize = (user) => ({
   classRoom: user.classRoom,
     school: user.school,   
 });
+
+
+// @route POST /api/auth/register
+
+/// Used tranasacation so that if any of the operation fails, the whole operation will be 
+///rolled back and no data will be saved in the database.
+
+
+// @route POST /api/auth/register
+export const register = asyncHandler(async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { school, admin } = req.body;
+
+    // Validate request body
+    if (
+      !school?.name ||
+      !school?.email ||
+      !school?.phone ||
+      !school?.address ||
+      !admin?.name ||
+      !admin?.email ||
+      !admin?.password
+    ) {
+      res.status(400);
+      throw new Error("Please fill all required fields.");
+    }
+
+    // Check if school already exists
+    const schoolExists = await School.findOne({
+      email: school.email.toLowerCase(),
+    });
+
+    if (schoolExists) {
+      res.status(400);
+      throw new Error("A school with this email already exists.");
+    }
+
+    // Check if admin already exists
+    const adminExists = await User.findOne({
+      email: admin.email.toLowerCase(),
+    });
+
+    if (adminExists) {
+      res.status(400);
+      throw new Error("An admin with this email already exists.");
+    }
+
+    // Create School
+    const [newSchool] = await School.create(
+      [
+        {
+          name: school.name,
+          email: school.email.toLowerCase(),
+          phone: school.phone,
+          address: school.address,
+        },
+      ],
+      { session }
+    );
+
+    // Create First Admin
+    const [newAdmin] = await User.create(
+      [
+        {
+          name: admin.name,
+          email: admin.email.toLowerCase(),
+          password: admin.password,
+          role: "admin",
+          school: newSchool._id,
+        },
+      ],
+      { session }
+    );
+
+    await session.commitTransaction();
+
+    res.status(201).json({
+      message: "School registered successfully.",
+      user: sanitize(newAdmin),
+      token: generateToken(newAdmin._id),
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+});
+
 
 // @route  POST /api/auth/login
 export const login = asyncHandler(async (req, res) => {

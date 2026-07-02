@@ -1,13 +1,15 @@
 import { Link } from 'react-router-dom';
 import { GraduationCap, Users, School, FileText, Video, ArrowRight, Megaphone, Wallet, CalendarCheck } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '../../features/auth/authSlice';
 import { useGetOverviewStatsQuery } from '../../features/dashboard/dashboardApi';
 import { useGetAnnouncementsQuery } from '../../features/announcements/announcementApi';
 import { PageHeader, StatCard } from '../../components/ui/blocks';
 import { Card, Spinner, Badge } from '../../components/ui/primitives';
 
 export default function AdminDashboard() {
-  const { user } = useAuth();
+  const user = useSelector(selectCurrentUser);
+
   // Cached + deduped by RTK Query: navigating away and back to this page no
   // longer re-fires the request unless the cache was invalidated (e.g. a
   // teacher/student was added or removed) or the data went stale.
@@ -25,7 +27,8 @@ export default function AdminDashboard() {
 
   return (
     <div>
-      <PageHeader title={`Welcome back, ${user.name.split(' ')[0]}`} subtitle="Here's an overview of your school today." />
+      <PageHeader
+        title={`Welcome back, ${user?.name?.split(' ')[0] || 'Admin'}`} subtitle="Here's an overview of your school today." />
 
       {loading ? (
         <div className="flex justify-center py-16"><Spinner className="h-6 w-6" /></div>

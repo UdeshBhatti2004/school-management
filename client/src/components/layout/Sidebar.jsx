@@ -1,12 +1,22 @@
 import { NavLink } from 'react-router-dom';
 import { GraduationCap, LogOut, X } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useAuth } from '../../context/AuthContext';
 import { navByRole, roleLabels } from '../../lib/nav';
 import { cn } from '../../lib/cn';
+import { useDispatch, useSelector } from 'react-redux';
+import { selectCurrentUser, logout } from '../../features/auth/authSlice';
+import {useNavigate} from 'react-router-dom';
 
 export default function Sidebar({ mobileOpen, onCloseMobile }) {
-  const { user, logout } = useAuth();
+  const dispatch = useDispatch();
+const user = useSelector(selectCurrentUser);
+
+const navigate = useNavigate();
+
+const handleLogout = () => {
+  dispatch(logout());
+  navigate('/login', { replace: true });
+};
   const items = navByRole[user.role] || [];
 
   const content = (
@@ -77,7 +87,7 @@ export default function Sidebar({ mobileOpen, onCloseMobile }) {
             <p className="truncate text-xs text-ink-400">{user.email}</p>
           </div>
           <button
-            onClick={logout}
+            onClick={handleLogout}
             title="Sign out"
             className="rounded-lg p-2 text-ink-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
           >

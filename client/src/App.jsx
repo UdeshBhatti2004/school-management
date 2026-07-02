@@ -1,8 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardLayout from './components/layout/DashboardLayout';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from './features/auth/authSlice';
 
 import Login from './pages/Login';
 
@@ -28,18 +29,20 @@ import MyFees from './pages/student/MyFees';
 
 import Announcements from './pages/shared/Announcements';
 import Profile from './pages/shared/Profile';
+import Register from './pages/Register';
+
 
 // Render a component chosen by the current user's role; redirect if no match
 function ByRole({ admin, teacher, student }) {
-  const { user } = useAuth();
+  const user = useSelector(selectCurrentUser);
   const map = { admin, teacher, student };
-  const Component = map[user.role];
+  const Component = user ? map[user.role] : null;
   return Component ? <Component /> : <Navigate to="/app" replace />;
 }
 
 export default function App() {
   return (
-    <AuthProvider>
+   
       <BrowserRouter>
         <Toaster
           position="top-right"
@@ -49,6 +52,7 @@ export default function App() {
         />
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
           <Route
             path="/app"
@@ -85,6 +89,5 @@ export default function App() {
           <Route path="*" element={<Navigate to="/app" replace />} />
         </Routes>
       </BrowserRouter>
-    </AuthProvider>
   );
 }

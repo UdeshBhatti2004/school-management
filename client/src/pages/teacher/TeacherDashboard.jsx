@@ -3,14 +3,15 @@ import { FileText, Video, Calendar, Megaphone, ArrowRight } from 'lucide-react';
 import { useGetAssignmentsQuery } from '../../features/assignments/assignmentApi';
 import { useGetLecturesQuery } from '../../features/lectures/lectureApi';
 import { useGetAnnouncementsQuery } from '../../features/announcements/announcementApi';
-import { useAuth } from '../../context/AuthContext';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '../../features/auth/authSlice';
 import { PageHeader, StatCard } from '../../components/ui/blocks';
 import { Card, Spinner, Badge } from '../../components/ui/primitives';
 
 const fmtDate = (d) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 
 export default function TeacherDashboard() {
-  const { user } = useAuth();
+  const user = useSelector(selectCurrentUser);
   const { data: assignments, isLoading: loading } = useGetAssignmentsQuery();
   const { data: lectures } = useGetLecturesQuery();
   const { data: announcements } = useGetAnnouncementsQuery();
@@ -22,7 +23,8 @@ export default function TeacherDashboard() {
 
   return (
     <div>
-      <PageHeader title={`Hello, ${user.name.split(' ')[0]}`} subtitle="Your teaching activity at a glance." />
+      <PageHeader
+  title={`Hello, ${user?.name?.split(' ')[0] || 'Teacher'}`} subtitle="Your teaching activity at a glance." />
 
       {loading ? (
         <div className="flex justify-center py-16"><Spinner className="h-6 w-6" /></div>

@@ -1,12 +1,20 @@
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import { Spinner } from './ui/primitives';
+import { useSelector } from 'react-redux';
+import { useGetMeQuery } from '../features/auth/authApi';
+import { selectCurrentUser, selectToken } from '../features/auth/authSlice';
+
 
 export default function ProtectedRoute({ children, roles }) {
-  const { user, loading } = useAuth();
+  const user = useSelector(selectCurrentUser);
+const token = useSelector(selectToken);
+
+const { isLoading } = useGetMeQuery(undefined, {
+  skip: !token,
+});
   const location = useLocation();
 
-  if (loading) {
+  if (token && !user && isLoading)  {
     return (
       <div className="flex h-screen items-center justify-center">
         <Spinner className="h-7 w-7" />

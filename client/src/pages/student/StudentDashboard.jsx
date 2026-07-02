@@ -2,14 +2,15 @@ import { Link } from 'react-router-dom';
 import { BookCopy, Video, Award, Calendar, ArrowRight, Clock } from 'lucide-react';
 import { useGetAssignmentsQuery } from '../../features/assignments/assignmentApi';
 import { useGetLecturesQuery } from '../../features/lectures/lectureApi';
-import { useAuth } from '../../context/AuthContext';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '../../features/auth/authSlice';
 import { PageHeader, StatCard } from '../../components/ui/blocks';
 import { Card, Spinner, Badge } from '../../components/ui/primitives';
 
 const fmtDate = (d) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 
 export default function StudentDashboard() {
-  const { user } = useAuth();
+  const user = useSelector(selectCurrentUser);
   const { data: assignments, isLoading: loading } = useGetAssignmentsQuery();
   const { data: lectures } = useGetLecturesQuery();
 
@@ -22,7 +23,9 @@ export default function StudentDashboard() {
 
   return (
     <div>
-      <PageHeader title={`Hi, ${user.name.split(' ')[0]}`} subtitle="Stay on top of your assignments and lectures." />
+      <PageHeader
+        title={`Hi, ${user?.name?.split(' ')[0] || 'Student'}`}
+        subtitle="Stay on top of your assignments and lectures." />
 
       {loading ? (
         <div className="flex justify-center py-16"><Spinner className="h-6 w-6" /></div>

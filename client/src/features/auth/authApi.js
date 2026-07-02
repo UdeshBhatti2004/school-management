@@ -12,6 +12,27 @@ export const authApi = apiSlice.injectEndpoints({
       invalidatesTags: ['Auth'],
     }),
 
+
+    //  Register new user
+    register: builder.mutation({
+  query: (body) => ({
+    url: "/auth/register",
+    method: "POST",
+    body,
+  }),
+  async onQueryStarted(_body, { dispatch, queryFulfilled }) {
+    const { data } = await queryFulfilled;
+
+    dispatch(
+      setCredentials({
+        user: data.user,
+        token: data.token,
+      })
+    );
+  },
+  invalidatesTags: ["Auth"],
+}),
+
     // Restores the session on page load when a token is already in storage.
     getMe: builder.query({
       query: () => '/auth/me',
@@ -40,4 +61,4 @@ export const authApi = apiSlice.injectEndpoints({
   }),
 });
 
-export const { useLoginMutation, useGetMeQuery, useUpdateProfileMutation, useChangePasswordMutation } = authApi;
+export const { useLoginMutation,useRegisterMutation, useGetMeQuery, useUpdateProfileMutation, useChangePasswordMutation } = authApi;

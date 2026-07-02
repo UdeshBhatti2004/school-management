@@ -1,18 +1,23 @@
 import { useState } from 'react';
 import { UserCircle, KeyRound } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useAuth } from '../../context/AuthContext';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '../../features/auth/authSlice';
 import { useUpdateProfileMutation, useChangePasswordMutation } from '../../features/auth/authApi';
 import { PageHeader } from '../../components/ui/blocks';
 import { Button, Input, Label, Card, Spinner, Badge } from '../../components/ui/primitives';
 import { getErrMsg } from '../../lib/getErrMsg';
+import { useEffect } from 'react';
 
 export default function Profile() {
-  const { user } = useAuth();
+  const user = useSelector(selectCurrentUser);
   const [updateProfile] = useUpdateProfileMutation();
   const [changePassword] = useChangePasswordMutation();
 
-  const [profile, setProfile] = useState({ name: user.name, phone: user.phone || '' });
+  const [profile, setProfile] = useState({
+  name: user?.name || '',
+  phone: user?.phone || '',
+});
   const [savingProfile, setSavingProfile] = useState(false);
   const [pw, setPw] = useState({ currentPassword: '', newPassword: '' });
   const [savingPw, setSavingPw] = useState(false);
@@ -21,8 +26,6 @@ export default function Profile() {
     e.preventDefault();
     setSavingProfile(true);
     try {
-      // onQueryStarted in authApi dispatches updateUser to the Redux store
-      // automatically, so useAuth().user updates everywhere with no extra code.
       await updateProfile(profile).unwrap();
       toast.success('Profile updated');
     } catch (err) {
@@ -45,6 +48,15 @@ export default function Profile() {
       setSavingPw(false);
     }
   };
+
+  useEffect(() => {
+  if (user) {
+    setProfile({
+      name: user.name,
+      phone: user.phone || '',
+    });
+  }
+}, [user]);
 
   return (
     <div>

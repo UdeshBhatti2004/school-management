@@ -4,7 +4,8 @@ import { Plus, Megaphone, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useGetAnnouncementsQuery, useCreateAnnouncementMutation, useDeleteAnnouncementMutation } from '../../features/announcements/announcementApi';
 import { useGetClassesQuery } from '../../features/classes/classApi';
-import { useAuth } from '../../context/AuthContext';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '../../features/auth/authSlice';
 import { PageHeader } from '../../components/ui/blocks';
 import { Button, Input, Label, Select, Textarea, Card, Badge, Spinner, EmptyState } from '../../components/ui/primitives';
 import Modal from '../../components/ui/Modal';
@@ -13,8 +14,8 @@ import { getErrMsg } from '../../lib/getErrMsg';
 const fmt = (d) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
 export default function Announcements() {
-  const { user } = useAuth();
-  const canPost = user.role === 'admin' || user.role === 'teacher';
+  const user = useSelector(selectCurrentUser);
+  const canPost = user?.role === 'admin' || user?.role === 'teacher';
   const { data: items, isLoading: loading } = useGetAnnouncementsQuery();
   const { data: classes } = useGetClassesQuery();
   const [createAnnouncement] = useCreateAnnouncementMutation();
@@ -82,7 +83,7 @@ export default function Announcements() {
                       {a.createdBy?.name} · <span className="capitalize">{a.createdBy?.role}</span> · {fmt(a.createdAt)}
                     </p>
                   </div>
-                  {(user.role === 'admin' || a.createdBy?._id === user._id) && (
+                  {(user?.role === 'admin' || a.createdBy?._id === user?._id) && (
                     <button onClick={() => handleDelete(a)} className="rounded-lg p-2 text-ink-400 hover:bg-rose-50 hover:text-rose-600"><Trash2 size={16} /></button>
                   )}
                 </div>
@@ -120,7 +121,7 @@ export default function Announcements() {
               <Label>Audience</Label>
               <Select value={form.audience} onChange={set('audience')}>
                 <option value="all">Everyone</option>
-                {user.role === 'admin' && <option value="teachers">Teachers</option>}
+                {user?.role === 'admin' && <option value="teachers">Teachers</option>}
                 <option value="students">Students</option>
                 <option value="class">Specific class</option>
               </Select>
