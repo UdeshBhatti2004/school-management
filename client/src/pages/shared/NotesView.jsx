@@ -13,7 +13,9 @@ import { getErrMsg } from '../../lib/getErrMsg';
 const emptyForm = { title: '', description: '', subject: '', classRoom: '', fileUrl: '', fileName: '', fileType: 'link', publicId: '' };
 
 export default function NotesView({ manage = false }) {
-  const { data: notes, isLoading: loading } = useGetNotesQuery();
+  const { data: notes, isLoading: loading } = useGetNotesQuery(undefined, {
+  refetchOnMountOrArgChange: true,
+});
   const { data: classes } = useGetClassesQuery();
   const [createNote] = useCreateNoteMutation();
   const [deleteNote] = useDeleteNoteMutation();

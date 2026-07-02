@@ -15,10 +15,14 @@ const fmt = (d) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', m
 const statusTone = { paid: 'green', partial: 'amber', pending: 'slate' };
 
 export default function FeesManager() {
-  const { data: fees, isLoading: loading } = useGetFeesQuery();
+  const { data: fees, isLoading: loading } = useGetFeesQuery(undefined, {
+  refetchOnMountOrArgChange: true,
+});
   const { data: summary } = useGetFeeSummaryQuery();
   const { data: classes } = useGetClassesQuery();
-  const { data: students } = useGetUsersQuery('student');
+  const { data: students } = useGetUsersQuery('student', {
+  refetchOnMountOrArgChange: true,
+});
   const [createFee] = useCreateFeeMutation();
   const [recordPaymentMutation] = useRecordPaymentMutation();
   const [deleteFee] = useDeleteFeeMutation();

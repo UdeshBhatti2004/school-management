@@ -12,8 +12,16 @@ import { getErrMsg } from '../../lib/getErrMsg';
 const emptyForm = { name: '', section: 'A', classTeacher: '', subjects: [] };
 
 export default function Classes() {
-  const { data: classes, isLoading: loading } = useGetClassesQuery();
-  const { data: teachers } = useGetUsersQuery('teacher');
+  const { data: classes, isLoading: loading } =
+  useGetClassesQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
+
+const { data: teachers } =
+  useGetUsersQuery('teacher', {
+    refetchOnMountOrArgChange: true,
+  });
+  
   const [createClass] = useCreateClassMutation();
   const [updateClass] = useUpdateClassMutation();
   const [deleteClass] = useDeleteClassMutation();

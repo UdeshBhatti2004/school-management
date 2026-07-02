@@ -13,8 +13,15 @@ export default function AdminDashboard() {
   // Cached + deduped by RTK Query: navigating away and back to this page no
   // longer re-fires the request unless the cache was invalidated (e.g. a
   // teacher/student was added or removed) or the data went stale.
-  const { data: stats, isLoading: loading } = useGetOverviewStatsQuery();
-  const { data: announcements } = useGetAnnouncementsQuery();
+  const {
+  data: stats,
+  isLoading: loading,
+} = useGetOverviewStatsQuery(undefined, {
+  refetchOnMountOrArgChange: true,
+});
+  const { data: announcements } = useGetAnnouncementsQuery(undefined, {
+  refetchOnMountOrArgChange: true,
+});
 
   const inr = (n) => '₹' + Number(n || 0).toLocaleString('en-IN');
   const cards = [

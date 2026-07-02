@@ -32,9 +32,13 @@ export default function TakeAttendance() {
 
   // Existing attendance sheet for this class+date — refetches automatically
   // whenever classId or date change because they're part of the query arg.
-  const { data: existingSheet, isFetching: sheetLoading } = useGetAttendanceQuery(
+  const { data: existingSheet, isFetching: sheetLoading } =
+  useGetAttendanceQuery(
     { classRoom: classId, date },
-    { skip: !classId }
+    {
+      skip: !classId,
+      refetchOnMountOrArgChange: true,
+    }
   );
   const [markAttendance] = useMarkAttendanceMutation();
 

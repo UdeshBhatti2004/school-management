@@ -16,7 +16,9 @@ const fmt = (d) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', m
 export default function Announcements() {
   const user = useSelector(selectCurrentUser);
   const canPost = user?.role === 'admin' || user?.role === 'teacher';
-  const { data: items, isLoading: loading } = useGetAnnouncementsQuery();
+  const { data: items, isLoading: loading } = useGetAnnouncementsQuery(undefined, {
+  refetchOnMountOrArgChange: true,
+}); 
   const { data: classes } = useGetClassesQuery();
   const [createAnnouncement] = useCreateAnnouncementMutation();
   const [deleteAnnouncement] = useDeleteAnnouncementMutation();

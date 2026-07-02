@@ -11,7 +11,12 @@ import { getErrMsg } from '../../lib/getErrMsg';
 const fmtDate = (d) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
 export default function StudentAssignments() {
-  const { data: assignments, isLoading: loading } = useGetAssignmentsQuery();
+const {
+  data: assignments,
+  isLoading: loading,
+} = useGetAssignmentsQuery(undefined, {
+  refetchOnMountOrArgChange: true,
+});
   const [submitAssignment] = useSubmitAssignmentMutation();
   const [active, setActive] = useState(null);
   const [content, setContent] = useState('');

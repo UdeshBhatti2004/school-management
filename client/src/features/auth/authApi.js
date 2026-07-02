@@ -6,8 +6,17 @@ export const authApi = apiSlice.injectEndpoints({
     login: builder.mutation({
       query: (credentials) => ({ url: '/auth/login', method: 'POST', body: credentials }),
       async onQueryStarted(_credentials, { dispatch, queryFulfilled }) {
-        const { data } = await queryFulfilled; // let errors bubble to the caller via .unwrap()
-        dispatch(setCredentials({ user: data.user, token: data.token }));
+       const { data } = await queryFulfilled;
+
+// Clear every cached query from the previous user
+dispatch(apiSlice.util.resetApiState());
+
+dispatch(
+  setCredentials({
+    user: data.user,
+    token: data.token,
+  })
+);
       },
       invalidatesTags: ['Auth'],
     }),
@@ -23,12 +32,15 @@ export const authApi = apiSlice.injectEndpoints({
   async onQueryStarted(_body, { dispatch, queryFulfilled }) {
     const { data } = await queryFulfilled;
 
-    dispatch(
-      setCredentials({
-        user: data.user,
-        token: data.token,
-      })
-    );
+// Clear every cached query from the previous user
+dispatch(apiSlice.util.resetApiState());
+
+dispatch(
+  setCredentials({
+    user: data.user,
+    token: data.token,
+  })
+);
   },
   invalidatesTags: ["Auth"],
 }),

@@ -6,6 +6,7 @@ import { cn } from '../../lib/cn';
 import { useDispatch, useSelector } from 'react-redux';
 import { selectCurrentUser, logout } from '../../features/auth/authSlice';
 import {useNavigate} from 'react-router-dom';
+import { apiSlice } from '../../features/api/apiSlice';
 
 export default function Sidebar({ mobileOpen, onCloseMobile }) {
   const dispatch = useDispatch();
@@ -15,6 +16,8 @@ const navigate = useNavigate();
 
 const handleLogout = () => {
   dispatch(logout());
+  dispatch(apiSlice.util.resetApiState());
+
   navigate('/login', { replace: true });
 };
   const items = navByRole[user.role] || [];

@@ -29,7 +29,9 @@ function toEmbed(url) {
 const emptyForm = { title: '', description: '', subject: '', classRoom: '', videoUrl: '', durationMinutes: '', sourceType: 'link', publicId: '' };
 
 export default function LecturesView({ manage = false }) {
-  const { data: lectures, isLoading: loading } = useGetLecturesQuery();
+  const { data: lectures, isLoading: loading } = useGetLecturesQuery(undefined, {
+  refetchOnMountOrArgChange: true,
+});
   const { data: classes } = useGetClassesQuery();
   const [createLecture] = useCreateLectureMutation();
   const [deleteLecture] = useDeleteLectureMutation();

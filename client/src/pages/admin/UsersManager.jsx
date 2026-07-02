@@ -21,7 +21,9 @@ const emptyForm = (role) => ({
 export default function UsersManager({ role, title, subtitle, icon: Icon }) {
   // Cached per-role: switching Teachers -> Students -> Teachers reuses the
   // cache instead of refetching, same as the dashboard.
-  const { data: users, isLoading: loading } = useGetUsersQuery(role);
+  const { data: users, isLoading: loading } = useGetUsersQuery(role, {
+  refetchOnMountOrArgChange: true,
+});
   const { data: classes } = useGetClassesQuery();
   const [createUser] = useCreateUserMutation();
   const [updateUser] = useUpdateUserMutation();

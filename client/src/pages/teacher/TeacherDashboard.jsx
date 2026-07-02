@@ -12,9 +12,16 @@ const fmtDate = (d) => new Date(d).toLocaleDateString(undefined, { day: 'numeric
 
 export default function TeacherDashboard() {
   const user = useSelector(selectCurrentUser);
-  const { data: assignments, isLoading: loading } = useGetAssignmentsQuery();
-  const { data: lectures } = useGetLecturesQuery();
-  const { data: announcements } = useGetAnnouncementsQuery();
+  const { data: assignments, isLoading: loading } =
+  useGetAssignmentsQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
+  const { data: lectures } = useGetLecturesQuery(undefined, {
+  refetchOnMountOrArgChange: true,
+});
+  const { data: announcements } = useGetAnnouncementsQuery(undefined, {
+  refetchOnMountOrArgChange: true,
+});
 
   const upcoming = (assignments || [])
     .filter((a) => new Date(a.dueDate) >= new Date())

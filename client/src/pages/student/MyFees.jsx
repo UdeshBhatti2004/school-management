@@ -8,7 +8,9 @@ const fmt = (d) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', m
 const statusTone = { paid: 'green', partial: 'amber', pending: 'rose' };
 
 export default function MyFees() {
-  const { data: fees, isLoading: loading } = useGetFeesQuery();
+  const { data: fees, isLoading: loading } = useGetFeesQuery(undefined, {
+  refetchOnMountOrArgChange: true,
+});
 
   const totalDue = (fees || []).reduce((s, f) => s + (f.amount - f.paidAmount), 0);
   const totalPaid = (fees || []).reduce((s, f) => s + f.paidAmount, 0);

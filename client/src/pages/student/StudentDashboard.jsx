@@ -11,8 +11,15 @@ const fmtDate = (d) => new Date(d).toLocaleDateString(undefined, { day: 'numeric
 
 export default function StudentDashboard() {
   const user = useSelector(selectCurrentUser);
-  const { data: assignments, isLoading: loading } = useGetAssignmentsQuery();
-  const { data: lectures } = useGetLecturesQuery();
+  const {
+  data: assignments,
+  isLoading: loading,
+} = useGetAssignmentsQuery(undefined, {
+  refetchOnMountOrArgChange: true,
+});
+  const { data: lectures } = useGetLecturesQuery(undefined, {
+  refetchOnMountOrArgChange: true,
+});
 
   const pending = (assignments || []).filter((a) => !a.mySubmission);
   const graded = (assignments || []).filter((a) => a.mySubmission?.status === 'graded');

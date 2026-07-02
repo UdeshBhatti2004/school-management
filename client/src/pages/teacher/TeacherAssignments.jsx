@@ -14,7 +14,10 @@ const fmtDate = (d) => new Date(d).toLocaleDateString(undefined, { day: 'numeric
 const emptyForm = { title: '', description: '', subject: '', classRoom: '', dueDate: '', maxMarks: 100, attachmentUrl: '' };
 
 export default function TeacherAssignments() {
-  const { data: assignments, isLoading: loading } = useGetAssignmentsQuery();
+  const { data: assignments, isLoading: loading } =
+  useGetAssignmentsQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
   const { data: classes } = useGetClassesQuery();
   const [createAssignment] = useCreateAssignmentMutation();
   const [deleteAssignment] = useDeleteAssignmentMutation();
