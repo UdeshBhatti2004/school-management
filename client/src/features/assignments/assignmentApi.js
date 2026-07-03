@@ -22,21 +22,39 @@ export const assignmentApi = apiSlice.injectEndpoints({
 
     // Student submits/resubmits their own work for an assignment.
     submitAssignment: builder.mutation({
-      query: ({ id, ...body }) => ({ url: `/assignments/${id}/submit`, method: 'POST', body }),
-      // mySubmission is embedded on the assignment object itself, so the
-      // list needs refreshing for the student's status badge to update.
-      invalidatesTags: [{ type: 'Assignment', id: 'LIST' }],
-    }),
+  query: ({ id, ...body }) => ({
+    url: `/assignments/${id}/submit`,
+    method: 'POST',
+    body,
+  }),
+  invalidatesTags: (result, error, { id }) => [
+    { type: 'Assignment', id: 'LIST' },
+    { type: 'Submission', id },
+  ],
+}),
 
     getSubmissions: builder.query({
-      query: (assignmentId) => `/assignments/${assignmentId}/submissions`,
-      providesTags: (result, error, assignmentId) => [{ type: 'Submission', id: assignmentId }],
-    }),
+  query: (assignmentId) => `/assignments/${assignmentId}/submissions`,
+  providesTags: (result, error, assignmentId) =>
+    result
+      ? [
+          ...result.map((s) => ({ type: 'Submission', id: s._id })),
+          { type: 'Submission', id: assignmentId },
+        ]
+      : [{ type: 'Submission', id: assignmentId }],
+}),
 
     gradeSubmission: builder.mutation({
-      query: ({ submissionId, ...body }) => ({ url: `/submissions/${submissionId}/grade`, method: 'PUT', body }),
-      invalidatesTags: (result, error, { assignmentId }) => [{ type: 'Submission', id: assignmentId }],
-    }),
+  query: ({ submissionId, ...body }) => ({
+    url: `/submissions/${submissionId}/grade`,
+    method: 'PUT',
+    body,
+  }),
+  invalidatesTags: (result, error, { assignmentId }) => [
+    { type: 'Submission', id: assignmentId },
+    { type: 'Assignment', id: 'LIST' },
+  ],
+}),
   }),
 });
 

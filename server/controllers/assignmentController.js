@@ -1,6 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import Assignment from '../models/Assignment.js';
 import Submission from '../models/Submission.js';
+import { getIO } from "../socket/index.js";
 
 // @route  GET /api/assignments
 // Scoped by role: students see their class; teachers see what they created; admin sees all
@@ -68,7 +69,12 @@ export const createAssignment = asyncHandler(async (req, res) => {
   const populated = await Assignment.findById(assignment._id)
     .populate('classRoom', 'name section')
     .populate('createdBy', 'name');
+    
+    getIO()
+  .to(`class:${assignment.classRoom}`)
+  .emit("assignment:created");
   res.status(201).json(populated);
+
 });
 
 // @route  PUT /api/assignments/:id

@@ -187,25 +187,51 @@ export default function FeesManager() {
                       <td className="px-5 py-3.5 text-ink-500">{fmt(f.dueDate)}</td>
                       <td className="px-5 py-3.5"><Badge tone={statusTone[f.status]} className="capitalize">{f.status}</Badge></td>
                       {/* Replace the desktop actions td with this */}
-                      <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                        <div className="flex justify-end items-center gap-2">
-                          {f.status !== 'paid' && (
-                            <Button size="sm" variant="secondary" onClick={() => openPay(f)}>
-                              Record payment
-                            </Button>
-                          )}
-                          <button
-                            disabled={f.payments?.length > 0}
-                            onClick={() => remove(f)}
-                            className={`rounded-lg p-2 ${f.payments?.length > 0
-                                ? "cursor-not-allowed opacity-40"
-                                : "text-ink-400 hover:bg-rose-50 hover:text-rose-600"
-                              }`}
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
-                      </td>
+                      <td className="px-5 py-3.5">
+  <div className="flex justify-end items-center gap-1">
+
+    {/* View */}
+    <button
+      title="View Details"
+      onClick={() => {
+        setSelectedFee(f);
+        setViewOpen(true);
+      }}
+      className="rounded-lg p-2 text-ink-500 transition hover:bg-slate-100 hover:text-brand-600"
+    >
+      <ChevronRight size={18} />
+    </button>
+
+    {/* Record Payment */}
+    <button
+      title="Record Payment"
+      disabled={f.status === "paid"}
+      onClick={() => openPay(f)}
+      className={`rounded-lg p-2 transition ${
+        f.status === "paid"
+          ? "cursor-not-allowed opacity-40"
+          : "text-brand-600 hover:bg-brand-50"
+      }`}
+    >
+      <IndianRupee size={18} />
+    </button>
+
+    {/* Delete */}
+    <button
+      title="Delete Fee"
+      disabled={f.payments?.length > 0}
+      onClick={() => remove(f)}
+      className={`rounded-lg p-2 transition ${
+        f.payments?.length > 0
+          ? "cursor-not-allowed opacity-40"
+          : "text-rose-500 hover:bg-rose-50"
+      }`}
+    >
+      <Trash2 size={17} />
+    </button>
+
+  </div>
+</td>
                     </motion.tr>
                   ))}
                 </tbody>
@@ -512,7 +538,7 @@ export default function FeesManager() {
             )}
 
             {selectedFee?.notes && (
-              <div>
+              <div> 
                 <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
                   Notes
                 </h3>

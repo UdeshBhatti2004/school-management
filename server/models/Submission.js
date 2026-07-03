@@ -7,12 +7,16 @@ const submissionSchema = new mongoose.Schema(
     content: { type: String, default: '' }, // text answer
     link: { type: String, default: '' }, // external link
     fileUrl: { type: String, default: '' }, // uploaded file path
-     /// organize data based on your schools
-        school: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "School",
-          required: true,
-        },
+    fileName: {
+      type: String,
+      default: "",
+    },
+    /// organize data based on your schools
+    school: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "School",
+      required: true,
+    },
     status: {
       type: String,
       enum: ['submitted', 'late', 'graded'],

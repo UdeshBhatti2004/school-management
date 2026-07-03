@@ -18,6 +18,9 @@ export default function TeacherAssignments() {
   useGetAssignmentsQuery(undefined, {
     refetchOnMountOrArgChange: true,
   });
+
+ console.log("Assignments:", assignments);
+
   const { data: classes } = useGetClassesQuery();
   const [createAssignment] = useCreateAssignmentMutation();
   const [deleteAssignment] = useDeleteAssignmentMutation();
@@ -184,7 +187,7 @@ export default function TeacherAssignments() {
         ) : (
           <div className="space-y-3">
             {subs.map((s) => (
-              <SubmissionRow key={s._id} sub={s} maxMarks={active.maxMarks} onGrade={grade} />
+              <SubmissionRow key={s._id} sub={s} maxMarks={active?.maxMarks ?? 0} onGrade={grade} />
             ))}
           </div>
         )}
@@ -218,7 +221,41 @@ function SubmissionRow({ sub, maxMarks, onGrade }) {
           <Label className="text-xs">Feedback</Label>
           <Input value={feedback} onChange={(e) => setFeedback(e.target.value)} className="h-9" placeholder="Optional note" />
         </div>
-        <Button size="sm" onClick={() => onGrade(sub, marks, feedback)}>Save</Button>
+        <Button
+  size="sm"
+  onClick={() => {
+    const score = Number(marks);
+
+if (marks === "") {
+  toast.error("Please enter marks.");
+  return;
+}
+
+if (Number.isNaN(score)) {
+  toast.error("Please enter valid marks.");
+  return;
+}
+
+if (score < 0) {
+  toast.error("Marks cannot be negative.");
+  return;
+}
+
+if (score > maxMarks) {
+  toast.error(`Marks cannot exceed ${maxMarks}.`);
+  return;
+}
+
+if (!feedback.trim()) {
+  toast.error("Please enter feedback.");
+  return;
+}
+
+onGrade(sub, score, feedback);
+  }}
+>
+  Save
+</Button>
       </div>
     </div>
   );

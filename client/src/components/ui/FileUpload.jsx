@@ -4,6 +4,11 @@ import toast from 'react-hot-toast';
 import { uploadFile } from '../../lib/upload';
 import { cn } from '../../lib/cn';
 import { getErrMsg } from '../../lib/getErrMsg';
+import {
+  ALLOWED_EXTENSIONS,
+  UPLOAD_LIMITS,
+  UPLOAD_LIMIT_LABELS,
+} from "../../lib/uploadConfig";
 
 // Calls onUploaded({ url, publicId, resourceType, fileName }) when done.
 export default function FileUpload({ accept, label = 'Upload a file', hint, onUploaded, value, onClear }) {
@@ -13,7 +18,39 @@ export default function FileUpload({ accept, label = 'Upload a file', hint, onUp
 
   const handleSelect = async (e) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+if (!file) return;
+
+const extension = file.name.split(".").pop()?.toLowerCase();
+
+if (!ALLOWED_EXTENSIONS.includes(extension)) {
+  toast.error("This file type is not supported.");
+  if (inputRef.current) inputRef.current.value = "";
+  return;
+}
+let maxSize = UPLOAD_LIMITS.document;
+let maxSizeLabel = UPLOAD_LIMIT_LABELS.document;
+
+if (file.type.startsWith("image/")) {
+  maxSize = UPLOAD_LIMITS.image;
+maxSizeLabel = UPLOAD_LIMIT_LABELS.image;
+} else if (file.type.startsWith("video/")) {
+  maxSize = UPLOAD_LIMITS.video;
+maxSizeLabel = UPLOAD_LIMIT_LABELS.video;
+} else if (["zip", "rar"].includes(extension)) {
+  maxSize = UPLOAD_LIMITS.archive;
+maxSizeLabel = UPLOAD_LIMIT_LABELS.archive;
+}
+
+if (file.size > maxSize) {
+  toast.error(
+    `${extension.toUpperCase()} files cannot exceed ${maxSizeLabel}.`
+  );
+
+  if (inputRef.current) inputRef.current.value = "";
+
+  return;
+}
+
     setUploading(true);
     setProgress(0);
     try {

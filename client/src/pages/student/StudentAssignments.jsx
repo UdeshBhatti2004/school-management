@@ -6,6 +6,7 @@ import { useGetAssignmentsQuery, useSubmitAssignmentMutation } from '../../featu
 import { PageHeader } from '../../components/ui/blocks';
 import { Button, Input, Label, Textarea, Card, Badge, Spinner, EmptyState } from '../../components/ui/primitives';
 import Modal from '../../components/ui/Modal';
+import FileUpload from '../../components/ui/FileUpload';
 import { getErrMsg } from '../../lib/getErrMsg';
 
 const fmtDate = (d) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -20,21 +21,55 @@ const {
   const [submitAssignment] = useSubmitAssignmentMutation();
   const [active, setActive] = useState(null);
   const [content, setContent] = useState('');
-  const [link, setLink] = useState('');
+const [link, setLink] = useState('');
+const [fileUrl, setFileUrl] = useState('');
+const [fileName, setFileName] = useState('');
   const [saving, setSaving] = useState(false);
 
   const openSubmit = (a) => {
-    setActive(a);
-    setContent(a.mySubmission?.content || '');
-    setLink(a.mySubmission?.link || '');
-  };
+  setActive(a);
+
+  setContent(a.mySubmission?.content || '');
+  setLink(a.mySubmission?.link || '');
+
+  setFileUrl(a.mySubmission?.fileUrl || '');
+  setFileName(a.mySubmission?.fileName || '');
+};
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
+  e.preventDefault();
+
+  console.log({
+  content,
+  link,
+  fileUrl,
+});
+
+
+if (!content.trim()) {
+  toast.error("Please enter your submission.");
+  return;
+}
+
+if (!fileUrl && !link.trim()) {
+  toast.error("Please upload a file or provide a submission link.");
+  return;
+}
+
+  setSaving(true);
     try {
-      await submitAssignment({ id: active._id, content, link }).unwrap();
+      await submitAssignment({
+  id: active._id,
+  content,
+  link,
+  fileUrl,
+  fileName,
+}).unwrap();
       toast.success('Submitted');
+      setContent("");
+setLink("");
+setFileUrl("");
+setFileName("");
       setActive(null);
     } catch (err) {
       toast.error(getErrMsg(err));
@@ -49,6 +84,9 @@ const {
     if (new Date(a.dueDate) < new Date()) return { tone: 'rose', label: 'Overdue', icon: Clock };
     return { tone: 'amber', label: 'Pending', icon: Clock };
   };
+
+  const canSubmit =
+  content.trim() && (fileUrl || link.trim());
 
   return (
     <div>
@@ -103,14 +141,34 @@ const {
 
       <Modal
         open={!!active}
-        onClose={() => setActive(null)}
+        onClose={() => {
+  setActive(null);
+  setContent("");
+  setLink("");
+  setFileUrl("");
+  setFileName("");
+}}
         title={active?.title}
         description={active ? `Due ${fmtDate(active.dueDate)} · Max ${active.maxMarks} marks` : ''}
         maxWidth="max-w-lg"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setActive(null)}>Cancel</Button>
-            <Button onClick={handleSubmit} disabled={saving}>
+          <Button
+  variant="secondary"
+  onClick={() => {
+    setActive(null);
+    setContent("");
+    setLink("");
+    setFileUrl("");
+    setFileName("");
+  }}
+>
+  Cancel
+</Button>
+            <Button
+  onClick={handleSubmit}
+  disabled={saving || !canSubmit}
+>
               {saving ? <Spinner className="h-4 w-4 border-white/40 border-t-white" /> : 'Submit work'}
             </Button>
           </>
@@ -122,13 +180,84 @@ const {
               <div className="rounded-lg bg-slate-50 p-3 text-sm text-ink-600">{active.description}</div>
             )}
             <div>
-              <Label>Your answer</Label>
-              <Textarea rows={5} value={content} onChange={(e) => setContent(e.target.value)} placeholder="Type your response…" />
+              <Label>
+  Submission <span className="text-rose-500">*</span>
+</Label>
+              <Textarea rows={5} value={content} onChange={(e) => setContent(e.target.value)} placeholder="Describe your work, approach, or answer..." />
             </div>
-            <div>
-              <Label>Link (optional)</Label>
-              <Input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Google Drive, GitHub, etc." />
-            </div>
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+  <h4 className="text-sm font-semibold text-blue-900">
+    Submission Requirements
+  </h4>
+
+  <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-blue-700">
+    <li>Submission description is required.</li>
+    <li>Upload a file <strong>OR</strong> provide a submission link.</li>
+  </ul>
+</div>
+
+           <div className="space-y-4">
+  <div>
+    <Label>Upload Assignment File</Label>
+
+    <FileUpload
+      accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,.rar,image/*,video/*"
+      label="Upload your assignment"
+      hint="Stored securely on Cloudinary"
+      value={
+        fileUrl
+          ? {
+              url: fileUrl,
+              fileName,
+            }
+          : null
+      }
+      onUploaded={(result) => {
+        setFileUrl(result.url);
+        setFileName(result.fileName);
+      }}
+      onClear={() => {
+        setFileUrl("");
+        setFileName("");
+      }}
+    />
+  </div>
+
+  <div className="flex items-center gap-3 py-2">
+  <div className="h-px flex-1 bg-slate-200" />
+
+  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+    OR
+  </span>
+
+  <div className="h-px flex-1 bg-slate-200" />
+</div>
+
+  <div>
+    <Label>Submission link</Label>
+
+    <Input
+      value={link}
+      onChange={(e) => setLink(e.target.value)}
+      placeholder="Paste a Google Drive, GitHub, OneDrive, or Figma link"
+    />
+  </div>
+ {fileUrl ? (
+  <p className="text-xs text-emerald-600">
+    ✓ File attached. Submission requirements are satisfied.
+  </p>
+) : link.trim() ? (
+  <p className="text-xs text-emerald-600">
+    ✓ Submission link added. Submission requirements are satisfied.
+  </p>
+) : (
+  <p className="text-xs text-amber-600">
+    Upload a file <strong>or</strong> provide a submission link to complete your submission.
+  </p>
+)}
+</div>
+
+
             <p className="text-xs text-ink-400">You can resubmit until your teacher grades the work.</p>
           </form>
         )}

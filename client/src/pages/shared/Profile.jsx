@@ -47,12 +47,6 @@ const [showNewPassword, setShowNewPassword] = useState(false);
   toast.error("Please enter a valid phone number.");
   return;
 }
-
-if (pw.currentPassword === pw.newPassword) {
-  toast.error("New password must be different from the current password.");
-  return;
-}
-
     setSavingProfile(true);
     try {
       await updateProfile(profile).unwrap();
@@ -66,6 +60,13 @@ if (pw.currentPassword === pw.newPassword) {
 
   const savePassword = async (e) => {
     e.preventDefault();
+ 
+      if (pw.currentPassword === pw.newPassword) {
+    toast.error("New password must be different from the current password.");
+    return;
+  }
+
+
     setSavingPw(true);
     try {
       await changePassword(pw).unwrap();
@@ -163,6 +164,12 @@ if (pw.currentPassword === pw.newPassword) {
   }
   onBlur={validatePhone}
 />
+{errors.phone && (
+  <p className="mt-1 text-xs text-rose-600">
+    {errors.phone}
+  </p>
+)}
+
               </div>
               <div className="flex justify-end">
                 <Button type="submit" disabled={savingProfile}>

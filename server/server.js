@@ -1,4 +1,5 @@
 import express from 'express';
+import http from 'http';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import morgan from 'morgan';
@@ -20,13 +21,15 @@ import attendanceRoutes from './routes/attendanceRoutes.js';
 import feeRoutes from './routes/feeRoutes.js';
 import noteRoutes from './routes/noteRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import { initSocket } from "./socket/index.js";
 
 dotenv.config();
 connectDB();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
-
+const server = http.createServer(app);
+const io = initSocket(server);
 const allowedOrigins = [
   process.env.CLIENT_URL,
   "http://localhost:5173",
@@ -67,7 +70,7 @@ app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 
   // ADD THIS BLOCK — self-ping to prevent Render free-tier sleep

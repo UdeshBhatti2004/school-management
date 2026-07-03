@@ -5,6 +5,6 @@ import { protect, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.post('/', protect, authorize('teacher', 'admin'), upload.single('file'), uploadFile);
+router.post('/', protect, authorize('teacher', 'admin','student'), upload.single('file'), uploadFile);
 
 export default router;

@@ -30,6 +30,8 @@ import MyFees from './pages/student/MyFees';
 import Announcements from './pages/shared/Announcements';
 import Profile from './pages/shared/Profile';
 import Register from './pages/Register';
+import SocketProvider from './components/SocketProvider';
+
 
 
 // Render a component chosen by the current user's role; redirect if no match
@@ -43,6 +45,9 @@ function ByRole({ admin, teacher, student }) {
 export default function App() {
   return (
    
+
+     <SocketProvider>
+
       <BrowserRouter>
         <Toaster
           position="top-right"
@@ -89,5 +94,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/app" replace />} />
         </Routes>
       </BrowserRouter>
+      </SocketProvider>
+
   );
 }
