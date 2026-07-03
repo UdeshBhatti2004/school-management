@@ -154,5 +154,14 @@ submission.marks = marks;
 submission.feedback = feedback;
 submission.status = "graded";
   await submission.save();
+
+  getIO()
+  .to(`user:${submission.student.toString()}`)
+  .emit("submission:graded", {
+    assignmentId: submission.assignment.toString(),
+    submissionId: submission._id.toString(),
+  });
+
+
   res.json(submission);
 });

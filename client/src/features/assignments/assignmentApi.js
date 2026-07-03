@@ -15,6 +15,19 @@ export const assignmentApi = apiSlice.injectEndpoints({
       invalidatesTags: [{ type: 'Assignment', id: 'LIST' }],
     }),
 
+
+    updateAssignment: builder.mutation({
+  query: ({ id, ...body }) => ({
+    url: `/assignments/${id}`,
+    method: "PUT",
+    body,
+  }),
+  invalidatesTags: (result, error, { id }) => [
+    { type: "Assignment", id },
+    { type: "Assignment", id: "LIST" },
+  ],
+}),
+
     deleteAssignment: builder.mutation({
       query: (id) => ({ url: `/assignments/${id}`, method: 'DELETE' }),
       invalidatesTags: (result, error, id) => [{ type: 'Assignment', id }, { type: 'Assignment', id: 'LIST' }],
@@ -61,6 +74,7 @@ export const assignmentApi = apiSlice.injectEndpoints({
 export const {
   useGetAssignmentsQuery,
   useCreateAssignmentMutation,
+  useUpdateAssignmentMutation,
   useDeleteAssignmentMutation,
   useSubmitAssignmentMutation,
   useGetSubmissionsQuery,

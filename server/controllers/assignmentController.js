@@ -35,7 +35,21 @@ export const getAssignments = asyncHandler(async (req, res) => {
     );
   }
 
-  res.json(assignments);
+  const assignmentsWithSubmissionInfo = await Promise.all(
+  assignments.map(async (assignment) => {
+    const submissionCount = await Submission.countDocuments({
+      assignment: assignment._id,
+      school: req.user.school,
+    });
+
+    return {
+      ...assignment.toObject(),
+      hasSubmissions: submissionCount > 0,
+    };
+  })
+);
+
+res.json(assignmentsWithSubmissionInfo);
 });
 
 // @route  GET /api/assignments/:id
@@ -56,11 +70,41 @@ export const getAssignmentById = asyncHandler(async (req, res) => {
 // @route  POST /api/assignments
 // @access teacher, admin
 export const createAssignment = asyncHandler(async (req, res) => {
-  const { title, classRoom, dueDate } = req.body;
-  if (!title || !classRoom || !dueDate) {
+  const { title, classRoom, dueDate ,subject } = req.body;
+  if (!title || !classRoom || !dueDate  || !subject) {
     res.status(400);
-    throw new Error('Title, class and due date are required');
+    throw new Error('Title, class, due date and subject are required');
   }
+
+
+  if (!/[A-Za-z]/.test(title)) {
+  res.status(400);
+  throw new Error("Title must contain at least one letter.");
+}
+
+if (req.body.description && !/[A-Za-z]/.test(req.body.description)) {
+  res.status(400);
+  throw new Error("Instructions must contain at least one letter.");
+
+}
+
+if (req.body.subject && !/^[A-Za-z\s]+$/.test(req.body.subject.trim())) {
+  res.status(400);
+  throw new Error("Subject can only contain letters and spaces.");
+}
+
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+
+const assignmentDueDate = new Date(dueDate);
+assignmentDueDate.setHours(0, 0, 0, 0);
+
+if (assignmentDueDate < today) {
+  res.status(400);
+  throw new Error("Due date cannot be in the past.");
+}
+
+
   const assignment = await Assignment.create({
   ...req.body,
   createdBy: req.user._id,
@@ -84,20 +128,96 @@ export const updateAssignment = asyncHandler(async (req, res) => {
   _id: req.params.id,
   school: req.user.school,
 });
-  if (!assignment) {
+ 
+
+if (!assignment) {
     res.status(404);
     throw new Error('Assignment not found');
   }
-  if (req.user.role === 'teacher' && assignment.createdBy.toString() !== req.user._id.toString()) {
-    res.status(403);
-    throw new Error('You can only edit your own assignments');
+
+  if (
+  req.user.role === "teacher" &&
+  assignment.createdBy.toString() !== req.user._id.toString()
+) {
+  res.status(403);
+  throw new Error("You can only edit your own assignments");
+}
+
+const submissionCount = await Submission.countDocuments({
+  assignment: assignment._id,
+  school: req.user.school,
+});
+
+if (submissionCount > 0) {
+
+
+   if (
+  req.body.subject &&
+  req.body.subject !== assignment.subject
+) {
+  res.status(400);
+  throw new Error(
+    "Subject cannot be changed after students have submitted the assignment."
+  );
+}
+
+  if (
+    req.body.classRoom &&
+    req.body.classRoom !== assignment.classRoom.toString()
+  ) {
+    res.status(400);
+    throw new Error(
+      "Class cannot be changed after students have submitted the assignment."
+    );
   }
+
+  if (
+    req.body.maxMarks !== undefined &&
+    Number(req.body.maxMarks) !== assignment.maxMarks
+  ) {
+    res.status(400);
+    throw new Error(
+      "Maximum marks cannot be changed after students have submitted the assignment."
+    );
+  }
+}
+
+if (
+  req.body.subject &&
+  !/^[A-Za-z\s]+$/.test(req.body.subject.trim())
+) {
+  res.status(400);
+  throw new Error("Subject can only contain letters and spaces.");
+}
+
+
+if (req.body.dueDate) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const newDueDate = new Date(req.body.dueDate);
+  newDueDate.setHours(0, 0, 0, 0);
+
+  if (newDueDate < today) {
+    res.status(400);
+    throw new Error("Due date cannot be in the past.");
+  }
+}
+
   ['title', 'description', 'subject', 'classRoom', 'dueDate', 'maxMarks', 'attachmentUrl'].forEach(
     (f) => {
       if (req.body[f] !== undefined) assignment[f] = req.body[f];
     }
   );
   await assignment.save();
+
+ getIO()
+  .to(`class:${assignment.classRoom.toString()}`)
+  .emit("assignment:updated", {
+    assignmentId: assignment._id.toString(),
+  });
+
+
   res.json(assignment);
 });
 
@@ -120,6 +240,17 @@ await Submission.deleteMany({
   assignment: assignment._id,
   school: req.user.school,
 });
+
+const classRoomId = assignment.classRoom.toString();
+
+
   await assignment.deleteOne();
+
+getIO()
+  .to(`class:${classRoomId}`)
+  .emit("assignment:deleted", {
+    assignmentId: assignment._id.toString(),
+  });
+
   res.json({ message: 'Assignment removed' });
 });

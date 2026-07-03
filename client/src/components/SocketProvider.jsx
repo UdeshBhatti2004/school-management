@@ -26,7 +26,6 @@ export default function SocketProvider({ children }) {
   socket.connect();
 
   const handleAssignmentCreated = () => {
-  console.log("📚 Assignment created");
 
   dispatch(
     assignmentApi.util.invalidateTags([
@@ -34,6 +33,8 @@ export default function SocketProvider({ children }) {
     ])
   );
 };
+
+socket.on("assignment:created", handleAssignmentCreated);
 
 const handleSubmissionCreated = ({ assignmentId }) => {
   dispatch(
@@ -45,11 +46,49 @@ const handleSubmissionCreated = ({ assignmentId }) => {
 
 socket.on("submission:created", handleSubmissionCreated);
 
-socket.on("assignment:created", handleAssignmentCreated);
+
+
+const handleSubmissionGraded = () => {
+  console.log("✅ submission:graded received");
+  dispatch(
+    assignmentApi.util.invalidateTags([
+      { type: "Assignment", id: "LIST" },
+    ])
+  );
+};
+
+socket.on("submission:graded", handleSubmissionGraded);
+
+
+const handleAssignmentDeleted = () => {
+  dispatch(
+    assignmentApi.util.invalidateTags([
+      { type: "Assignment", id: "LIST" },
+    ])
+  );
+};
+
+socket.on("assignment:deleted", handleAssignmentDeleted);
+
+
+const handleAssignmentUpdated = () => {
+  dispatch(
+    assignmentApi.util.invalidateTags([
+      { type: "Assignment", id: "LIST" },
+    ])
+  );
+};
+
+
+socket.on("assignment:updated", handleAssignmentUpdated);
+
 
   return () => {
   socket.off("assignment:created", handleAssignmentCreated);
   socket.off("submission:created", handleSubmissionCreated);
+  socket.off("submission:graded", handleSubmissionGraded);
+  socket.off("assignment:deleted", handleAssignmentDeleted);
+  socket.off("assignment:updated", handleAssignmentUpdated);
   socket.disconnect();
 };
 

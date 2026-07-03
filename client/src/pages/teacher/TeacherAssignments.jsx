@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, FileText, Trash2, Users, Calendar, ClipboardCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useGetAssignmentsQuery, useCreateAssignmentMutation, useDeleteAssignmentMutation, useGetSubmissionsQuery, useGradeSubmissionMutation } from '../../features/assignments/assignmentApi';
+import { useGetAssignmentsQuery, useCreateAssignmentMutation, useDeleteAssignmentMutation, useGetSubmissionsQuery, useGradeSubmissionMutation,useUpdateAssignmentMutation, } from '../../features/assignments/assignmentApi';
 import { useGetClassesQuery } from '../../features/classes/classApi';
 import { PageHeader } from '../../components/ui/blocks';
 import { Button, Input, Label, Select, Textarea, Card, Badge, Spinner, EmptyState } from '../../components/ui/primitives';
 import Modal from '../../components/ui/Modal';
 import {getErrMsg} from '../../lib/getErrMsg';
-
+import { Pencil } from "lucide-react";
 const fmtDate = (d) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
 const emptyForm = { title: '', description: '', subject: '', classRoom: '', dueDate: '', maxMarks: 100, attachmentUrl: '' };
@@ -25,10 +25,13 @@ export default function TeacherAssignments() {
   const [createAssignment] = useCreateAssignmentMutation();
   const [deleteAssignment] = useDeleteAssignmentMutation();
   const [gradeSubmission] = useGradeSubmissionMutation();
+  const [updateAssignment] = useUpdateAssignmentMutation();
 
+  const [editingAssignment, setEditingAssignment] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [hasSubmissions, setHasSubmissions] = useState(false);
 
   // submissions viewer — querying by assignment id, cached per assignment
   const [active, setActive] = useState(null);
@@ -39,16 +42,66 @@ export default function TeacherAssignments() {
   const handleCreate = async (e) => {
     e.preventDefault();
     setSaving(true);
+
+
+  if (!/[A-Za-z]/.test(form.title.trim())) {
+    toast.error("Title Should be Valid");
+    setSaving(false);
+    return;
+  }
+
+  if (form.description.trim() && !/[A-Za-z]/.test(form.description.trim())) {
+  toast.error("Instructions Should be Valid");
+  setSaving(false);
+  return;
+}
+
+if (!/^[A-Za-z\s]+$/.test(form.subject.trim())) {
+  toast.error("Subject can only contain letters");
+  setSaving(false);
+  return;
+}
+
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+
+const dueDate = new Date(form.dueDate);
+dueDate.setHours(0, 0, 0, 0);
+
+if (dueDate < today) {
+  toast.error("Due date cannot be in the past.");
+  setSaving(false);
+  return;
+}
+
+
     try {
-      await createAssignment({ ...form, maxMarks: Number(form.maxMarks) }).unwrap();
-      toast.success('Assignment posted');
-      setModalOpen(false);
-      setForm(emptyForm);
-    } catch (err) {
-      toast.error(getErrMsg(err));
-    } finally {
-      setSaving(false);
-    }
+  if (editingAssignment) {
+    await updateAssignment({
+      id: editingAssignment._id,
+      ...form,
+      maxMarks: Number(form.maxMarks),
+    }).unwrap();
+
+    toast.success("Assignment updated");
+  } else {
+    await createAssignment({
+      ...form,
+      maxMarks: Number(form.maxMarks),
+    }).unwrap();
+
+    toast.success("Assignment posted");
+  }
+
+  setModalOpen(false);
+  setForm(emptyForm);
+  setEditingAssignment(null);
+  setHasSubmissions(false);
+} catch (err) {
+  toast.error(getErrMsg(err));
+} finally {
+  setSaving(false);
+}
   };
 
   const handleDelete = async (a) => {
@@ -61,6 +114,25 @@ export default function TeacherAssignments() {
     }
   };
 
+ const handleEdit = (assignment) => {
+  setEditingAssignment(assignment);
+
+  console.log("hasSubmissions:", assignment.hasSubmissions);
+  setHasSubmissions(assignment.hasSubmissions);
+
+  setForm({
+    title: assignment.title,
+    description: assignment.description || "",
+    subject: assignment.subject || "",
+    classRoom: assignment.classRoom?._id || "",
+    dueDate: assignment.dueDate.split("T")[0],
+    maxMarks: assignment.maxMarks,
+    attachmentUrl: assignment.attachmentUrl || "",
+  });
+
+  setModalOpen(true);
+};
+
   const grade = async (sub, marks, feedback) => {
     try {
       await gradeSubmission({ submissionId: sub._id, assignmentId: active._id, marks: Number(marks), feedback }).unwrap();
@@ -70,12 +142,28 @@ export default function TeacherAssignments() {
     }
   };
 
+  console.log({
+  editingAssignment,
+  hasSubmissions,
+});
+
   return (
     <div>
       <PageHeader
         title="Assignments"
         subtitle="Post work to your classes and review what students submit."
-        action={<Button onClick={() => setModalOpen(true)}><Plus size={16} /> New assignment</Button>}
+        action={<Button
+  onClick={() => {
+    setEditingAssignment(null);
+    setForm(emptyForm);
+    setModalOpen(true);
+    setHasSubmissions(false);
+
+  }}
+>
+  <Plus size={16} />
+  New Assignment
+</Button>}
       />
 
       {loading ? (
@@ -83,7 +171,19 @@ export default function TeacherAssignments() {
       ) : (assignments || []).length === 0 ? (
         <Card>
           <EmptyState icon={FileText} title="No assignments yet" description="Create an assignment and it will appear for the selected class."
-            action={<Button onClick={() => setModalOpen(true)}><Plus size={16} /> New assignment</Button>} />
+            action={
+  <Button
+    onClick={() => {
+      setEditingAssignment(null);
+      setForm(emptyForm);
+      setModalOpen(true);
+      setHasSubmissions(false);
+    }}
+  >
+    <Plus size={16} />
+    New Assignment
+  </Button>
+}  />
         </Card>
       ) : (
         <div className="space-y-3">
@@ -108,6 +208,14 @@ export default function TeacherAssignments() {
                     </div>
                   </div>
                   <div className="flex shrink-0 gap-2">
+        <Button
+  variant="secondary"
+  size="sm"
+  onClick={() => handleEdit(a)}
+>
+  <Pencil size={15} />
+  Edit
+</Button>
                     <Button variant="secondary" size="sm" onClick={() => setActive(a)}>
                       <ClipboardCheck size={15} /> Submissions
                     </Button>
@@ -123,15 +231,31 @@ export default function TeacherAssignments() {
       {/* Create modal */}
       <Modal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title="New assignment"
+        onClose={() => {
+  setModalOpen(false);
+  setEditingAssignment(null);
+  setForm(emptyForm);
+  setHasSubmissions(false);
+}}
+        title={editingAssignment ? "Edit Assignment" : "New Assignment"}
         maxWidth="max-w-xl"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button variant="secondary" onClick={() => {
+  setModalOpen(false);
+  setEditingAssignment(null);
+  setForm(emptyForm);
+  setHasSubmissions(false);
+}}>Cancel</Button>
             <Button onClick={handleCreate} disabled={saving}>
-              {saving ? <Spinner className="h-4 w-4 border-white/40 border-t-white" /> : 'Post assignment'}
-            </Button>
+  {saving ? (
+    <Spinner className="h-4 w-4 border-white/40 border-t-white" />
+  ) : editingAssignment ? (
+    "Save Changes"
+  ) : (
+    "Post Assignment"
+  )}
+</Button>
           </>
         }
       >
@@ -147,14 +271,36 @@ export default function TeacherAssignments() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Class</Label>
-              <Select value={form.classRoom} onChange={set('classRoom')} required>
+              <Select
+  value={form.classRoom}
+  onChange={set('classRoom')}
+  required
+  disabled={editingAssignment && hasSubmissions}
+>
                 <option value="">Select class</option>
                 {(classes || []).map((c) => <option key={c._id} value={c._id}>{c.name} · {c.section}</option>)}
               </Select>
+
+            {editingAssignment && hasSubmissions && (
+  <p className="mt-1 text-xs text-amber-600">
+    Class cannot be changed after students have submitted this assignment.
+  </p>
+)}
+
             </div>
             <div>
               <Label>Subject</Label>
-              <Input value={form.subject} onChange={set('subject')} placeholder="Physics" />
+             <Input
+  value={form.subject}
+  onChange={set("subject")}
+  placeholder="Physics"
+  disabled={editingAssignment && hasSubmissions}
+/>
+{editingAssignment && hasSubmissions && (
+  <p className="mt-1 text-xs text-amber-600">
+    Subject cannot be changed after students have submitted this assignment.
+  </p>
+)}
             </div>
             <div>
               <Label>Due date</Label>
@@ -162,7 +308,18 @@ export default function TeacherAssignments() {
             </div>
             <div>
               <Label>Max marks</Label>
-              <Input type="number" value={form.maxMarks} onChange={set('maxMarks')} />
+              <Input
+  type="number"
+  value={form.maxMarks}
+  onChange={set('maxMarks')}
+  disabled={editingAssignment && hasSubmissions}
+/>
+
+{editingAssignment && hasSubmissions && (
+  <p className="mt-1 text-xs text-amber-600">
+    Maximum marks cannot be changed after students have submitted this assignment.
+  </p>
+)}
             </div>
           </div>
           <div>
