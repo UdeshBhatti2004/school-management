@@ -7,6 +7,7 @@ import {
 import { socket } from "../lib/socket";
 import { registerAssignmentListeners } from "../lib/socket/assignmentListeners";
 import { registerAnnouncementListeners } from "../lib/socket/announcementListeners";
+import { registerNoteListeners } from "../lib/socket/noteListeners";
 
 export default function SocketProvider({ children }) {
   const user = useSelector(selectCurrentUser);
@@ -36,11 +37,17 @@ const cleanupAnnouncements = registerAnnouncementListeners(
   dispatch
 );
 
+const cleanupNotes = registerNoteListeners(
+  socket,
+  dispatch
+);
+
 
 
  return () => {
   cleanupAssignments();
   cleanupAnnouncements();
+  cleanupNotes();
 
   socket.disconnect();
 };

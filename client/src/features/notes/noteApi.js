@@ -15,6 +15,15 @@ export const noteApi = apiSlice.injectEndpoints({
       invalidatesTags: [{ type: 'Note', id: 'LIST' }],
     }),
 
+    updateNote: builder.mutation({
+  query: ({ id, ...body }) => ({
+    url: `/notes/${id}`,
+    method: "PUT",
+    body,
+  }),
+  invalidatesTags: [{ type: "Note", id: "LIST" }],
+}),
+
     deleteNote: builder.mutation({
       query: (id) => ({ url: `/notes/${id}`, method: 'DELETE' }),
       invalidatesTags: [{ type: 'Note', id: 'LIST' }],
@@ -22,4 +31,4 @@ export const noteApi = apiSlice.injectEndpoints({
   }),
 });
 
-export const { useGetNotesQuery, useCreateNoteMutation, useDeleteNoteMutation } = noteApi;
+export const { useGetNotesQuery, useCreateNoteMutation, useUpdateNoteMutation , useDeleteNoteMutation } = noteApi;
