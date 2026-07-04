@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, FileText, Trash2, Users, Calendar, ClipboardCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useGetAssignmentsQuery, useCreateAssignmentMutation, useDeleteAssignmentMutation, useGetSubmissionsQuery, useGradeSubmissionMutation,useUpdateAssignmentMutation, } from '../../features/assignments/assignmentApi';
+import { useGetAssignmentsQuery, useCreateAssignmentMutation, useDeleteAssignmentMutation, useGetSubmissionsQuery, useGradeSubmissionMutation, useUpdateAssignmentMutation, } from '../../features/assignments/assignmentApi';
 import { useGetClassesQuery } from '../../features/classes/classApi';
 import { PageHeader } from '../../components/ui/blocks';
 import { Button, Input, Label, Select, Textarea, Card, Badge, Spinner, EmptyState } from '../../components/ui/primitives';
 import Modal from '../../components/ui/Modal';
-import {getErrMsg} from '../../lib/getErrMsg';
+import { getErrMsg } from '../../lib/getErrMsg';
 import { Pencil } from "lucide-react";
 const fmtDate = (d) => new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -15,11 +15,11 @@ const emptyForm = { title: '', description: '', subject: '', classRoom: '', dueD
 
 export default function TeacherAssignments() {
   const { data: assignments, isLoading: loading } =
-  useGetAssignmentsQuery(undefined, {
-    refetchOnMountOrArgChange: true,
-  });
+    useGetAssignmentsQuery(undefined, {
+      refetchOnMountOrArgChange: true,
+    });
 
- console.log("Assignments:", assignments);
+  console.log("Assignments:", assignments);
 
   const { data: classes } = useGetClassesQuery();
   const [createAssignment] = useCreateAssignmentMutation();
@@ -44,64 +44,76 @@ export default function TeacherAssignments() {
     setSaving(true);
 
 
-  if (!/[A-Za-z]/.test(form.title.trim())) {
-    toast.error("Title Should be Valid");
-    setSaving(false);
-    return;
-  }
+    if (!/[A-Za-z]/.test(form.title.trim())) {
+      toast.error("Title Should be Valid");
+      setSaving(false);
+      return;
+    }
 
-  if (form.description.trim() && !/[A-Za-z]/.test(form.description.trim())) {
-  toast.error("Instructions Should be Valid");
-  setSaving(false);
-  return;
-}
+    if (form.description.trim() && !/[A-Za-z]/.test(form.description.trim())) {
+      toast.error("Instructions Should be Valid");
+      setSaving(false);
+      return;
+    }
 
-if (!/^[A-Za-z\s]+$/.test(form.subject.trim())) {
-  toast.error("Subject can only contain letters");
-  setSaving(false);
-  return;
-}
+    if (!/^[A-Za-z\s]+$/.test(form.subject.trim())) {
+      toast.error("Subject can only contain letters");
+      setSaving(false);
+      return;
+    }
 
-const today = new Date();
-today.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-const dueDate = new Date(form.dueDate);
-dueDate.setHours(0, 0, 0, 0);
+    const dueDate = new Date(form.dueDate);
+    dueDate.setHours(0, 0, 0, 0);
 
-if (dueDate < today) {
-  toast.error("Due date cannot be in the past.");
-  setSaving(false);
-  return;
-}
+    if (dueDate < today) {
+      toast.error("Due date cannot be in the past.");
+      setSaving(false);
+      return;
+    }
 
+
+    if (form.attachmentUrl.trim()) {
+      try {
+        new URL(form.attachmentUrl.trim());
+      } catch {
+        toast.error("Please enter a valid attachment URL.");
+        setSaving(false);
+        return;
+      }
+    }
 
     try {
-  if (editingAssignment) {
-    await updateAssignment({
-      id: editingAssignment._id,
-      ...form,
-      maxMarks: Number(form.maxMarks),
-    }).unwrap();
+      if (editingAssignment) {
+        await updateAssignment({
+          id: editingAssignment._id,
+          ...form,
+          attachmentUrl: form.attachmentUrl.trim(),
+          maxMarks: Number(form.maxMarks),
+        }).unwrap();
 
-    toast.success("Assignment updated");
-  } else {
-    await createAssignment({
-      ...form,
-      maxMarks: Number(form.maxMarks),
-    }).unwrap();
+        toast.success("Assignment updated");
+      } else {
+        await createAssignment({
+          ...form,
+          attachmentUrl: form.attachmentUrl.trim(),
+          maxMarks: Number(form.maxMarks),
+        }).unwrap();
 
-    toast.success("Assignment posted");
-  }
+        toast.success("Assignment posted");
+      }
 
-  setModalOpen(false);
-  setForm(emptyForm);
-  setEditingAssignment(null);
-  setHasSubmissions(false);
-} catch (err) {
-  toast.error(getErrMsg(err));
-} finally {
-  setSaving(false);
-}
+      setModalOpen(false);
+      setForm(emptyForm);
+      setEditingAssignment(null);
+      setHasSubmissions(false);
+    } catch (err) {
+      toast.error(getErrMsg(err));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async (a) => {
@@ -114,24 +126,24 @@ if (dueDate < today) {
     }
   };
 
- const handleEdit = (assignment) => {
-  setEditingAssignment(assignment);
+  const handleEdit = (assignment) => {
+    setEditingAssignment(assignment);
 
-  console.log("hasSubmissions:", assignment.hasSubmissions);
-  setHasSubmissions(assignment.hasSubmissions);
+    console.log("hasSubmissions:", assignment.hasSubmissions);
+    setHasSubmissions(assignment.hasSubmissions);
 
-  setForm({
-    title: assignment.title,
-    description: assignment.description || "",
-    subject: assignment.subject || "",
-    classRoom: assignment.classRoom?._id || "",
-    dueDate: assignment.dueDate.split("T")[0],
-    maxMarks: assignment.maxMarks,
-    attachmentUrl: assignment.attachmentUrl || "",
-  });
+    setForm({
+      title: assignment.title,
+      description: assignment.description || "",
+      subject: assignment.subject || "",
+      classRoom: assignment.classRoom?._id || "",
+      dueDate: assignment.dueDate.split("T")[0],
+      maxMarks: assignment.maxMarks,
+      attachmentUrl: assignment.attachmentUrl || "",
+    });
 
-  setModalOpen(true);
-};
+    setModalOpen(true);
+  };
 
   const grade = async (sub, marks, feedback) => {
     try {
@@ -143,9 +155,9 @@ if (dueDate < today) {
   };
 
   console.log({
-  editingAssignment,
-  hasSubmissions,
-});
+    editingAssignment,
+    hasSubmissions,
+  });
 
   return (
     <div>
@@ -153,17 +165,17 @@ if (dueDate < today) {
         title="Assignments"
         subtitle="Post work to your classes and review what students submit."
         action={<Button
-  onClick={() => {
-    setEditingAssignment(null);
-    setForm(emptyForm);
-    setModalOpen(true);
-    setHasSubmissions(false);
+          onClick={() => {
+            setEditingAssignment(null);
+            setForm(emptyForm);
+            setModalOpen(true);
+            setHasSubmissions(false);
 
-  }}
->
-  <Plus size={16} />
-  New Assignment
-</Button>}
+          }}
+        >
+          <Plus size={16} />
+          New Assignment
+        </Button>}
       />
 
       {loading ? (
@@ -172,18 +184,18 @@ if (dueDate < today) {
         <Card>
           <EmptyState icon={FileText} title="No assignments yet" description="Create an assignment and it will appear for the selected class."
             action={
-  <Button
-    onClick={() => {
-      setEditingAssignment(null);
-      setForm(emptyForm);
-      setModalOpen(true);
-      setHasSubmissions(false);
-    }}
-  >
-    <Plus size={16} />
-    New Assignment
-  </Button>
-}  />
+              <Button
+                onClick={() => {
+                  setEditingAssignment(null);
+                  setForm(emptyForm);
+                  setModalOpen(true);
+                  setHasSubmissions(false);
+                }}
+              >
+                <Plus size={16} />
+                New Assignment
+              </Button>
+            } />
         </Card>
       ) : (
         <div className="space-y-3">
@@ -208,14 +220,14 @@ if (dueDate < today) {
                     </div>
                   </div>
                   <div className="flex shrink-0 gap-2">
-        <Button
-  variant="secondary"
-  size="sm"
-  onClick={() => handleEdit(a)}
->
-  <Pencil size={15} />
-  Edit
-</Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleEdit(a)}
+                    >
+                      <Pencil size={15} />
+                      Edit
+                    </Button>
                     <Button variant="secondary" size="sm" onClick={() => setActive(a)}>
                       <ClipboardCheck size={15} /> Submissions
                     </Button>
@@ -232,30 +244,30 @@ if (dueDate < today) {
       <Modal
         open={modalOpen}
         onClose={() => {
-  setModalOpen(false);
-  setEditingAssignment(null);
-  setForm(emptyForm);
-  setHasSubmissions(false);
-}}
+          setModalOpen(false);
+          setEditingAssignment(null);
+          setForm(emptyForm);
+          setHasSubmissions(false);
+        }}
         title={editingAssignment ? "Edit Assignment" : "New Assignment"}
         maxWidth="max-w-xl"
         footer={
           <>
             <Button variant="secondary" onClick={() => {
-  setModalOpen(false);
-  setEditingAssignment(null);
-  setForm(emptyForm);
-  setHasSubmissions(false);
-}}>Cancel</Button>
+              setModalOpen(false);
+              setEditingAssignment(null);
+              setForm(emptyForm);
+              setHasSubmissions(false);
+            }}>Cancel</Button>
             <Button onClick={handleCreate} disabled={saving}>
-  {saving ? (
-    <Spinner className="h-4 w-4 border-white/40 border-t-white" />
-  ) : editingAssignment ? (
-    "Save Changes"
-  ) : (
-    "Post Assignment"
-  )}
-</Button>
+              {saving ? (
+                <Spinner className="h-4 w-4 border-white/40 border-t-white" />
+              ) : editingAssignment ? (
+                "Save Changes"
+              ) : (
+                "Post Assignment"
+              )}
+            </Button>
           </>
         }
       >
@@ -272,35 +284,35 @@ if (dueDate < today) {
             <div>
               <Label>Class</Label>
               <Select
-  value={form.classRoom}
-  onChange={set('classRoom')}
-  required
-  disabled={editingAssignment && hasSubmissions}
->
+                value={form.classRoom}
+                onChange={set('classRoom')}
+                required
+                disabled={editingAssignment && hasSubmissions}
+              >
                 <option value="">Select class</option>
                 {(classes || []).map((c) => <option key={c._id} value={c._id}>{c.name} · {c.section}</option>)}
               </Select>
 
-            {editingAssignment && hasSubmissions && (
-  <p className="mt-1 text-xs text-amber-600">
-    Class cannot be changed after students have submitted this assignment.
-  </p>
-)}
+              {editingAssignment && hasSubmissions && (
+                <p className="mt-1 text-xs text-amber-600">
+                  Class cannot be changed after students have submitted this assignment.
+                </p>
+              )}
 
             </div>
             <div>
               <Label>Subject</Label>
-             <Input
-  value={form.subject}
-  onChange={set("subject")}
-  placeholder="Physics"
-  disabled={editingAssignment && hasSubmissions}
-/>
-{editingAssignment && hasSubmissions && (
-  <p className="mt-1 text-xs text-amber-600">
-    Subject cannot be changed after students have submitted this assignment.
-  </p>
-)}
+              <Input
+                value={form.subject}
+                onChange={set("subject")}
+                placeholder="Physics"
+                disabled={editingAssignment && hasSubmissions}
+              />
+              {editingAssignment && hasSubmissions && (
+                <p className="mt-1 text-xs text-amber-600">
+                  Subject cannot be changed after students have submitted this assignment.
+                </p>
+              )}
             </div>
             <div>
               <Label>Due date</Label>
@@ -309,17 +321,17 @@ if (dueDate < today) {
             <div>
               <Label>Max marks</Label>
               <Input
-  type="number"
-  value={form.maxMarks}
-  onChange={set('maxMarks')}
-  disabled={editingAssignment && hasSubmissions}
-/>
+                type="number"
+                value={form.maxMarks}
+                onChange={set('maxMarks')}
+                disabled={editingAssignment && hasSubmissions}
+              />
 
-{editingAssignment && hasSubmissions && (
-  <p className="mt-1 text-xs text-amber-600">
-    Maximum marks cannot be changed after students have submitted this assignment.
-  </p>
-)}
+              {editingAssignment && hasSubmissions && (
+                <p className="mt-1 text-xs text-amber-600">
+                  Maximum marks cannot be changed after students have submitted this assignment.
+                </p>
+              )}
             </div>
           </div>
           <div>
@@ -379,40 +391,40 @@ function SubmissionRow({ sub, maxMarks, onGrade }) {
           <Input value={feedback} onChange={(e) => setFeedback(e.target.value)} className="h-9" placeholder="Optional note" />
         </div>
         <Button
-  size="sm"
-  onClick={() => {
-    const score = Number(marks);
+          size="sm"
+          onClick={() => {
+            const score = Number(marks);
 
-if (marks === "") {
-  toast.error("Please enter marks.");
-  return;
-}
+            if (marks === "") {
+              toast.error("Please enter marks.");
+              return;
+            }
 
-if (Number.isNaN(score)) {
-  toast.error("Please enter valid marks.");
-  return;
-}
+            if (Number.isNaN(score)) {
+              toast.error("Please enter valid marks.");
+              return;
+            }
 
-if (score < 0) {
-  toast.error("Marks cannot be negative.");
-  return;
-}
+            if (score < 0) {
+              toast.error("Marks cannot be negative.");
+              return;
+            }
 
-if (score > maxMarks) {
-  toast.error(`Marks cannot exceed ${maxMarks}.`);
-  return;
-}
+            if (score > maxMarks) {
+              toast.error(`Marks cannot exceed ${maxMarks}.`);
+              return;
+            }
 
-if (!feedback.trim()) {
-  toast.error("Please enter feedback.");
-  return;
-}
+            if (!feedback.trim()) {
+              toast.error("Please enter feedback.");
+              return;
+            }
 
-onGrade(sub, score, feedback);
-  }}
->
-  Save
-</Button>
+            onGrade(sub, score, feedback);
+          }}
+        >
+          Save
+        </Button>
       </div>
     </div>
   );

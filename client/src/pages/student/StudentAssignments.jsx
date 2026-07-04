@@ -46,8 +46,15 @@ const [fileName, setFileName] = useState('');
 });
 
 
-if (!content.trim()) {
+const trimmedContent = content.trim();
+
+if (!trimmedContent) {
   toast.error("Please enter your submission.");
+  return;
+}
+
+if (!/[A-Za-z]/.test(trimmedContent)) {
+  toast.error("Submission description must contain at least one letter.");
   return;
 }
 
@@ -56,11 +63,20 @@ if (!fileUrl && !link.trim()) {
   return;
 }
 
+if (link.trim()) {
+  try {
+    new URL(link.trim());
+  } catch {
+    toast.error("Please enter a valid submission link.");
+    return;
+  }
+}
+
   setSaving(true);
     try {
       await submitAssignment({
   id: active._id,
-  content,
+    content: trimmedContent,
   link,
   fileUrl,
   fileName,

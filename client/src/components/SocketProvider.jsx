@@ -5,7 +5,8 @@ import {
   selectToken,
 } from "../features/auth/authSlice";
 import { socket } from "../lib/socket";
-import { assignmentApi } from "../features/assignments/assignmentApi";
+import { registerAssignmentListeners } from "../lib/socket/assignmentListeners";
+import { registerAnnouncementListeners } from "../lib/socket/announcementListeners";
 
 export default function SocketProvider({ children }) {
   const user = useSelector(selectCurrentUser);
@@ -25,74 +26,26 @@ export default function SocketProvider({ children }) {
 
   socket.connect();
 
-  const handleAssignmentCreated = () => {
+const cleanupAssignments = registerAssignmentListeners(
+  socket,
+  dispatch
+);
 
-  dispatch(
-    assignmentApi.util.invalidateTags([
-      { type: "Assignment", id: "LIST" },
-    ])
-  );
-};
-
-socket.on("assignment:created", handleAssignmentCreated);
-
-const handleSubmissionCreated = ({ assignmentId }) => {
-  dispatch(
-    assignmentApi.util.invalidateTags([
-      { type: "Submission", id: assignmentId },
-    ])
-  );
-};
-
-socket.on("submission:created", handleSubmissionCreated);
+const cleanupAnnouncements = registerAnnouncementListeners(
+  socket,
+  dispatch
+);
 
 
 
-const handleSubmissionGraded = () => {
-  console.log("✅ submission:graded received");
-  dispatch(
-    assignmentApi.util.invalidateTags([
-      { type: "Assignment", id: "LIST" },
-    ])
-  );
-};
+ return () => {
+  cleanupAssignments();
+  cleanupAnnouncements();
 
-socket.on("submission:graded", handleSubmissionGraded);
-
-
-const handleAssignmentDeleted = () => {
-  dispatch(
-    assignmentApi.util.invalidateTags([
-      { type: "Assignment", id: "LIST" },
-    ])
-  );
-};
-
-socket.on("assignment:deleted", handleAssignmentDeleted);
-
-
-const handleAssignmentUpdated = () => {
-  dispatch(
-    assignmentApi.util.invalidateTags([
-      { type: "Assignment", id: "LIST" },
-    ])
-  );
-};
-
-
-socket.on("assignment:updated", handleAssignmentUpdated);
-
-
-  return () => {
-  socket.off("assignment:created", handleAssignmentCreated);
-  socket.off("submission:created", handleSubmissionCreated);
-  socket.off("submission:graded", handleSubmissionGraded);
-  socket.off("assignment:deleted", handleAssignmentDeleted);
-  socket.off("assignment:updated", handleAssignmentUpdated);
   socket.disconnect();
 };
 
-}, [user, token]);
+}, [user, token, dispatch]);
 
   return children;
 }

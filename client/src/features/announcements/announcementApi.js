@@ -15,6 +15,19 @@ export const announcementApi = apiSlice.injectEndpoints({
       invalidatesTags: [{ type: 'Announcement', id: 'LIST' }],
     }),
 
+
+    updateAnnouncement: builder.mutation({
+  query: ({ id, ...body }) => ({
+    url: `/announcements/${id}`,
+    method: "PUT",
+    body,
+  }),
+  invalidatesTags: (result, error, { id }) => [
+    { type: "Announcement", id },
+    { type: "Announcement", id: "LIST" },
+  ],
+}),
+
     deleteAnnouncement: builder.mutation({
       query: (id) => ({ url: `/announcements/${id}`, method: 'DELETE' }),
       invalidatesTags: [{ type: 'Announcement', id: 'LIST' }],
@@ -25,5 +38,6 @@ export const announcementApi = apiSlice.injectEndpoints({
 export const {
   useGetAnnouncementsQuery,
   useCreateAnnouncementMutation,
+    useUpdateAnnouncementMutation,
   useDeleteAnnouncementMutation,
 } = announcementApi;
