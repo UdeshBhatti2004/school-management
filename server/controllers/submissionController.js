@@ -22,13 +22,30 @@ const fileUrl = req.body.fileUrl?.trim() || "";
 
 if (!content) {
   res.status(400);
-  throw new Error("Submission content is required.");
+  throw new Error("Submission description is required.");
+}
+
+if (!/[A-Za-z]/.test(content)) {
+  res.status(400);
+  throw new Error(
+    "Submission description must contain at least one letter."
+  );
 }
 
 if (!link && !fileUrl) {
   res.status(400);
   throw new Error("Please upload a file or provide a submission link.");
 }
+
+if (link) {
+  try {
+    new URL(link);
+  } catch {
+    res.status(400);
+    throw new Error("Please enter a valid submission link.");
+  }
+}
+
 
   const isLate = new Date() > new Date(assignment.dueDate);
  const payload = {

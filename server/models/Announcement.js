@@ -16,6 +16,15 @@ const announcementSchema = new mongoose.Schema(
       default: 'all',
     },
     classRoom: { type: mongoose.Schema.Types.ObjectId, ref: 'ClassRoom' },
+    attachmentUrl: {
+  type: String,
+  default: "",
+},
+
+attachmentName: {
+  type: String,
+  default: "",
+},
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true }

@@ -93,6 +93,16 @@ if (req.body.subject && !/^[A-Za-z\s]+$/.test(req.body.subject.trim())) {
   throw new Error("Subject can only contain letters and spaces.");
 }
 
+
+if (req.body.attachmentUrl?.trim()) {
+  try {
+    new URL(req.body.attachmentUrl.trim());
+  } catch {
+    res.status(400);
+    throw new Error("Please enter a valid attachment URL.");
+  }
+}
+
 const today = new Date();
 today.setHours(0, 0, 0, 0);
 
@@ -188,6 +198,15 @@ if (
 ) {
   res.status(400);
   throw new Error("Subject can only contain letters and spaces.");
+}
+
+if (req.body.attachmentUrl?.trim()) {
+  try {
+    new URL(req.body.attachmentUrl.trim());
+  } catch {
+    res.status(400);
+    throw new Error("Please enter a valid attachment URL.");
+  }
 }
 
 
