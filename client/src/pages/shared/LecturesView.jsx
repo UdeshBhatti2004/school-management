@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Video, Trash2, Play, Clock, User } from 'lucide-react';
+import { Plus, Video, Trash2, Play, Clock, User,Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useGetLecturesQuery, useCreateLectureMutation, useDeleteLectureMutation } from '../../features/lectures/lectureApi';
+import { useGetLecturesQuery, useCreateLectureMutation, useUpdateLectureMutation, useDeleteLectureMutation } from '../../features/lectures/lectureApi';
 import { useGetClassesQuery } from '../../features/classes/classApi';
 import { PageHeader } from '../../components/ui/blocks';
 import { Button, Input, Label, Select, Textarea, Card, Badge, Spinner, EmptyState } from '../../components/ui/primitives';
@@ -35,25 +35,115 @@ export default function LecturesView({ manage = false }) {
   const { data: classes } = useGetClassesQuery();
   const [createLecture] = useCreateLectureMutation();
   const [deleteLecture] = useDeleteLectureMutation();
+  const [updateLecture] = useUpdateLectureMutation();
+
 
   const [modalOpen, setModalOpen] = useState(false);
   const [mode, setMode] = useState('link');
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [playing, setPlaying] = useState(null);
+  const [editingLecture, setEditingLecture] = useState(null);
+
+
+const selectedClass = classes?.find(
+  (c) => c._id === form.classRoom
+);
+
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  const handleCreate = async (e) => {
+const closeModal = () => {
+  setEditingLecture(null);
+  setModalOpen(false);
+  setForm(emptyForm);
+  setMode("link");
+};
+
+const openModal = () => {
+  setEditingLecture(null);
+  setForm(emptyForm);
+  setMode("link");
+  setModalOpen(true);
+};
+
+const openEditModal = (lecture) => {
+  setEditingLecture(lecture);
+
+  setForm({
+    title: lecture.title,
+    description: lecture.description || "",
+    subject: lecture.subject,
+    classRoom: lecture.classRoom._id,
+    videoUrl: lecture.videoUrl,
+    durationMinutes: lecture.durationMinutes || "",
+    sourceType: lecture.sourceType,
+    publicId: lecture.publicId || "",
+  });
+
+  setMode(lecture.sourceType);
+  setModalOpen(true);
+};
+
+const handleClassChange = (e) => {
+  const classRoom = e.target.value;
+
+  setForm((prev) => ({
+    ...prev,
+    classRoom,
+    subject: '',
+  }));
+};
+
+
+const switchToLink = () => {
+  setMode("link");
+
+  setForm((prev) => ({
+    ...prev,
+    sourceType: "link",
+    videoUrl: "",
+    publicId: "",
+  }));
+};
+
+const switchToUpload = () => {
+  setMode("upload");
+
+  setForm((prev) => ({
+    ...prev,
+    sourceType: "upload",
+    videoUrl: "",
+    publicId: "",
+  }));
+};
+
+
+  const handleCreate  = async (e) => {
     e.preventDefault();
     if (!form.videoUrl) return toast.error('Add a video link or upload a file');
     setSaving(true);
     try {
-      await createLecture({ ...form, durationMinutes: form.durationMinutes ? Number(form.durationMinutes) : 0 }).unwrap();
-      toast.success('Lecture published');
-      setModalOpen(false);
-      setForm(emptyForm);
-      setMode('link');
+      const payload = {
+  ...form,
+  durationMinutes: form.durationMinutes
+    ? Number(form.durationMinutes)
+    : 0,
+};
+
+if (editingLecture) {
+  await updateLecture({
+    id: editingLecture._id,
+    ...payload,
+  }).unwrap();
+
+  toast.success("Lecture updated");
+} else {
+  await createLecture(payload).unwrap();
+
+  toast.success("Lecture published");
+}
+      closeModal();
     } catch (err) {
       toast.error(getErrMsg(err));
     } finally {
@@ -71,12 +161,15 @@ export default function LecturesView({ manage = false }) {
     }
   };
 
+
+console.log(JSON.stringify(selectedClass, null, 2));
+
   return (
     <div>
       <PageHeader
         title="Lectures"
         subtitle={manage ? 'Publish video lectures for your classes.' : 'Watch lectures shared by your teachers.'}
-        action={manage ? <Button onClick={() => setModalOpen(true)}><Plus size={16} /> New lecture</Button> : null}
+        action={manage ? <Button onClick={openModal}><Plus size={16} /> New lecture</Button> : null}
       />
 
       {loading ? (
@@ -85,7 +178,7 @@ export default function LecturesView({ manage = false }) {
         <Card>
           <EmptyState icon={Video} title="No lectures yet"
             description={manage ? 'Add a video link and it will be available to the class.' : "Your teachers haven't posted any lectures yet."}
-            action={manage ? <Button onClick={() => setModalOpen(true)}><Plus size={16} /> New lecture</Button> : null} />
+            action={manage ? <Button onClick={openModal}><Plus size={16} /> New lecture</Button> : null} />
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -102,8 +195,22 @@ export default function LecturesView({ manage = false }) {
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-semibold leading-snug text-ink-900">{l.title}</h3>
                     {manage && (
-                      <button onClick={() => handleDelete(l)} className="rounded-lg p-1.5 text-ink-400 hover:bg-rose-50 hover:text-rose-600"><Trash2 size={14} /></button>
-                    )}
+  <div className="flex items-center gap-1">
+    <button
+      onClick={() => openEditModal(l)}
+      className="rounded-lg p-1.5 text-ink-400 hover:bg-brand-50 hover:text-brand-600"
+    >
+      <Pencil size={14} />
+    </button>
+
+    <button
+      onClick={() => handleDelete(l)}
+      className="rounded-lg p-1.5 text-ink-400 hover:bg-rose-50 hover:text-rose-600"
+    >
+      <Trash2 size={14} />
+    </button>
+  </div>
+)}
                   </div>
                   {l.description && <p className="mt-1 line-clamp-2 text-sm text-ink-500">{l.description}</p>}
                   <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 pt-3 text-xs text-ink-400">
@@ -119,13 +226,26 @@ export default function LecturesView({ manage = false }) {
       )}
 
       {manage && (
-        <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="New lecture" maxWidth="max-w-xl"
+        <Modal open={modalOpen}   onClose={closeModal} title={editingLecture ? "Edit Lecture" : "New Lecture"}
+         maxWidth="max-w-xl"
           footer={
             <>
-              <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
-              <Button onClick={handleCreate} disabled={saving}>
-                {saving ? <Spinner className="h-4 w-4 border-white/40 border-t-white" /> : 'Publish'}
-              </Button>
+              <Button
+  variant="secondary"
+  onClick={closeModal}
+  disabled={saving}
+>Cancel</Button>
+       <Button
+  type="button"
+  onClick={handleCreate}
+  disabled={saving}
+>
+  {saving ? (
+    <Spinner className="h-4 w-4 border-white/40 border-t-white" />
+  ) : (
+    editingLecture ? "Update" : "Publish"
+  )}
+</Button>
             </>
           }>
           <form onSubmit={handleCreate} className="space-y-4">
@@ -134,9 +254,18 @@ export default function LecturesView({ manage = false }) {
             <div>
               <Label>Video source</Label>
               <div className="mb-2 flex gap-2">
-                <button type="button" onClick={() => setMode('link')} className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium ${mode === 'link' ? 'border-brand-300 bg-brand-50 text-brand-700' : 'border-slate-200 text-ink-600'}`}>Paste link</button>
-                <button type="button" onClick={() => setMode('upload')} className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium ${mode === 'upload' ? 'border-brand-300 bg-brand-50 text-brand-700' : 'border-slate-200 text-ink-600'}`}>Upload video</button>
+                <button type="button" onClick={switchToLink} className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium ${mode === 'link' ? 'border-brand-300 bg-brand-50 text-brand-700' : 'border-slate-200 text-ink-600'}`}>Paste link</button>
+                <button type="button" onClick={switchToUpload} className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium ${mode === 'upload' ? 'border-brand-300 bg-brand-50 text-brand-700' : 'border-slate-200 text-ink-600'}`}>Upload video</button>
+
+       
+
               </div>
+
+
+              <p className="mb-2 text-xs text-ink-500">
+  Only one video source can be used. Switching between <strong>Paste Link</strong> and{" "}
+  <strong>Upload Video</strong> will clear the previously selected source.
+</p>
               {mode === 'link' ? (
                 <>
                   <Input value={form.sourceType === 'link' ? form.videoUrl : ''} onChange={(e) => setForm((f) => ({ ...f, videoUrl: e.target.value, sourceType: 'link', publicId: '' }))} placeholder="https://www.youtube.com/watch?v=…" />
@@ -148,18 +277,46 @@ export default function LecturesView({ manage = false }) {
                   onUploaded={(r) => setForm((f) => ({ ...f, videoUrl: r.url, sourceType: 'upload', publicId: r.publicId }))}
                   onClear={() => setForm((f) => ({ ...f, videoUrl: '', sourceType: 'link', publicId: '' }))} />
               )}
+
+              
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-2">
                 <Label>Class</Label>
-                <Select value={form.classRoom} onChange={set('classRoom')} required>
+                <Select value={form.classRoom} onChange={handleClassChange} required>
                   <option value="">Select class</option>
                   {(classes || []).map((c) => <option key={c._id} value={c._id}>{c.name} · {c.section}</option>)}
                 </Select>
               </div>
-              <div><Label>Minutes</Label><Input type="number" value={form.durationMinutes} onChange={set('durationMinutes')} /></div>
+              <div><Label>Minutes</Label><Input type="number" min={0}
+  max={600}
+  step={1} value={form.durationMinutes} onChange={set('durationMinutes')} /></div>
             </div>
-            <div><Label>Subject</Label><Input value={form.subject} onChange={set('subject')} placeholder="Physics" /></div>
+    <div>
+  <Label>Subject</Label>
+
+  <Select
+    value={form.subject}
+    onChange={set("subject")}
+    required
+    disabled={!form.classRoom}
+  >
+    <option value="">
+      {form.classRoom
+        ? "Select subject"
+        : "Select class first"}
+    </option>
+
+    {(selectedClass?.subjects || []).map((subject) => (
+      <option
+        key={subject.name}
+        value={subject.name}
+      >
+        {subject.name}
+      </option>
+    ))}
+  </Select>
+</div>
           </form>
         </Modal>
       )}
