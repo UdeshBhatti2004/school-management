@@ -8,6 +8,10 @@ import { PageHeader } from '../../components/ui/blocks';
 import { Button, Input, Label, Select, Card, Spinner, EmptyState, Badge } from '../../components/ui/primitives';
 import { cn } from '../../lib/cn';
 import { getErrMsg } from '../../lib/getErrMsg';
+import { useSelector } from "react-redux";
+import { selectCurrentUser } from "../../features/auth/authSlice";
+
+
 
 const STATUSES = [
   { key: 'present', label: 'Present', icon: Check, tone: 'bg-emerald-600' },
@@ -21,14 +25,41 @@ export default function TakeAttendance() {
   const { data: classes } = useGetClassesQuery();
   const [classId, setClassId] = useState('');
   const [date, setDate] = useState(todayStr());
-  const [subject, setSubject] = useState('');
   const [marks, setMarks] = useState({});
   const [saving, setSaving] = useState(false);
+
+
+  const user = useSelector(selectCurrentUser);
 
   // Roster comes from the class detail endpoint (separate cache entry, kept
   // warm across date/subject changes within the same class).
   const [fetchClass, { data: classDetail, isFetching: rosterLoading }] = useLazyGetClassByIdQuery();
-  const students = classDetail?.students || [];
+  const students = classDetail?.students;
+
+
+
+const filteredClasses = useMemo(() => {
+  if (!classes) return [];
+
+  if (user?.role === "admin") {
+  return classes;
+}
+
+return classes.filter(
+  (c) => c.classTeacher?._id === user?._id
+);
+}, [classes, user]);
+
+
+useEffect(() => {
+  if (
+    user?.role === "teacher" &&
+    filteredClasses.length === 1 &&
+    !classId
+  ) {
+    setClassId(filteredClasses[0]._id);
+  }
+}, [user, filteredClasses, classId]);
 
   // Existing attendance sheet for this class+date — refetches automatically
   // whenever classId or date change because they're part of the query arg.
@@ -43,25 +74,33 @@ export default function TakeAttendance() {
   const [markAttendance] = useMarkAttendanceMutation();
 
   useEffect(() => {
-    if (classId) fetchClass(classId);
-  }, [classId, fetchClass]);
+  if (classId) {
+    fetchClass(classId);
+  }
+}, [classId, fetchClass]);
 
   // Seed the per-student status map whenever the roster or the existing
   // sheet for this subject changes.
   useEffect(() => {
-    if (!students.length) {
-      setMarks({});
-      return;
-    }
-    const existing = (existingSheet || []).find((s) => (s.subject || '') === subject);
-    const init = {};
-    students.forEach((s) => {
-      const rec = existing?.records?.find((r) => (r.student._id || r.student) === s._id);
-      init[s._id] = rec?.status || 'present';
-    });
-    setMarks(init);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [students, existingSheet, subject]);
+  if (!students?.length) {
+    setMarks({});
+    return;
+  }
+
+  const existing = existingSheet?.[0];
+
+  const init = {};
+
+  students.forEach((s) => {
+    const rec = existing?.records?.find(
+      (r) => (r.student._id || r.student) === s._id
+    );
+
+    init[s._id] = rec?.status || "present";
+  });
+
+  setMarks(init);
+}, [students, existingSheet]);
 
   const loading = Boolean(classId) && (rosterLoading || sheetLoading);
 
@@ -76,7 +115,11 @@ export default function TakeAttendance() {
     setSaving(true);
     try {
       const records = students.map((s) => ({ student: s._id, status: marks[s._id] || 'present' }));
-      await markAttendance({ classRoom: classId, date, subject, records }).unwrap();
+      await markAttendance({
+  classRoom: classId,
+  date,
+  records,
+}).unwrap();
       toast.success('Attendance saved');
     } catch (err) {
       toast.error(getErrMsg(err));
@@ -85,17 +128,30 @@ export default function TakeAttendance() {
     }
   };
 
-  const counts = useMemo(
-    () =>
-      students.reduce(
-        (acc, s) => {
-          acc[marks[s._id] || 'present'] += 1;
-          return acc;
-        },
-        { present: 0, late: 0, absent: 0 }
-      ),
-    [students, marks]
+  const counts = useMemo(() => {
+  if (!students?.length) {
+    return {
+      present: 0,
+      late: 0,
+      absent: 0,
+    };
+  }
+
+  return students.reduce(
+    (acc, s) => {
+      acc[marks[s._id] || "present"] += 1;
+      return acc;
+    },
+    {
+      present: 0,
+      late: 0,
+      absent: 0,
+    }
   );
+}, [students, marks]);
+
+console.log("User:", user);
+console.log("Filtered Classes:", filteredClasses);
 
   return (
     <div>
@@ -107,16 +163,16 @@ export default function TakeAttendance() {
             <Label>Class</Label>
             <Select value={classId} onChange={(e) => setClassId(e.target.value)}>
               <option value="">Select a class</option>
-              {(classes || []).map((c) => <option key={c._id} value={c._id}>{c.name} · {c.section}</option>)}
+              {filteredClasses.map((c) => (
+  <option key={c._id} value={c._id}>
+    {c.name} · {c.section}
+  </option>
+))}
             </Select>
           </div>
           <div>
             <Label>Date</Label>
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} max={todayStr()} />
-          </div>
-          <div>
-            <Label>Subject (optional)</Label>
-            <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Physics" />
           </div>
         </div>
       </Card>
@@ -125,9 +181,15 @@ export default function TakeAttendance() {
         <Card><EmptyState icon={CalendarCheck} title="Pick a class" description="Choose a class above to load its students and start marking." /></Card>
       ) : loading ? (
         <div className="flex justify-center py-16"><Spinner className="h-6 w-6" /></div>
-      ) : students.length === 0 ? (
-        <Card><EmptyState icon={CalendarCheck} title="No students" description="This class has no students assigned yet." /></Card>
-      ) : (
+      ) : !students?.length ? (
+  <Card>
+    <EmptyState
+      icon={CalendarCheck}
+      title="No students"
+      description="This class has no students assigned yet."
+    />
+  </Card>
+) : (
         <>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex gap-2">
@@ -144,7 +206,7 @@ export default function TakeAttendance() {
           </div>
 
           <Card className="divide-y divide-slate-100">
-            {students.map((s, i) => (
+            {students?.map((s, i) => (
               <motion.div
                 key={s._id}
                 initial={{ opacity: 0 }}

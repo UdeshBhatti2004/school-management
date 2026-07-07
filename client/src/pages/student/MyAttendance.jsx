@@ -2,7 +2,6 @@ import { CalendarCheck, Check, X, Clock } from 'lucide-react';
 import { useGetMyAttendanceQuery } from '../../features/attendance/attendanceApi';
 import { PageHeader, StatCard } from '../../components/ui/blocks';
 import { Card, Spinner, Badge, EmptyState } from '../../components/ui/primitives';
-
 const toneFor = (status) => (status === 'present' ? 'green' : status === 'late' ? 'amber' : 'rose');
 const iconFor = (status) => (status === 'present' ? Check : status === 'late' ? Clock : X);
 const fmt = (d) => new Date(d).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
@@ -14,7 +13,7 @@ export default function MyAttendance() {
 
   return (
     <div>
-      <PageHeader title="My attendance" subtitle="Your attendance record across all classes." />
+      <PageHeader title="My attendance" subtitle="Track your attendance and attendance percentage." />
 
       {loading ? (
         <div className="flex justify-center py-16"><Spinner className="h-6 w-6" /></div>
@@ -38,7 +37,9 @@ export default function MyAttendance() {
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-ink-500"><CalendarCheck size={16} /></div>
                   <div className="flex-1">
                     <p className="text-sm font-medium text-ink-800">{fmt(h.date)}</p>
-                    <p className="text-xs text-ink-400">{h.subject || 'General'} · marked by {h.markedBy || '—'}</p>
+                    <p className="text-xs text-ink-400">
+  Marked by {h.markedBy || "—"}
+</p>
                   </div>
                   <Badge tone={toneFor(h.status)} className="capitalize"><Icon size={12} /> {h.status}</Badge>
                 </div>

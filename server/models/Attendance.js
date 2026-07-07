@@ -12,6 +12,13 @@ const attendanceSchema = new mongoose.Schema(
     date: { type: String, required: true }, // YYYY-MM-DD for easy unique-per-day
     markedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     subject: { type: String, default: '' },
+    lastEditedBy: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "User",
+},
+lastEditedAt: {
+  type: Date,
+},
     records: [
       {
         student: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -19,11 +26,20 @@ const attendanceSchema = new mongoose.Schema(
       },
     ],
   },
-  { timestamps: true }
+  
+  { timestamps: true },
+  
 );
 
-// One attendance sheet per class per date per subject
-attendanceSchema.index({ classRoom: 1, date: 1, subject: 1 }, { unique: true });
+// One attendance sheet per class per date 
+attendanceSchema.index(
+  {
+    school: 1,
+    classRoom: 1,
+    date: 1,
+  },
+  { unique: true }
+);
 
 const Attendance = mongoose.model('Attendance', attendanceSchema);
 export default Attendance;

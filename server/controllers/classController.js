@@ -94,6 +94,8 @@ await User.updateMany(
     },
   }
 );
+
+
   await classRoom.deleteOne();
   res.json({ message: 'Class removed' });
 });
