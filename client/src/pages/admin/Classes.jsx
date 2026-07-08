@@ -32,6 +32,9 @@ const { data: teachers } =
   const [saving, setSaving] = useState(false);
   const [roster, setRoster] = useState(null);
 
+  const [subjectName, setSubjectName] = useState("");
+const [subjectTeacher, setSubjectTeacher] = useState("");
+
   const openCreate = () => {
     setEditing(null);
     setForm(emptyForm);
@@ -52,7 +55,38 @@ const { data: teachers } =
     setModalOpen(true);
   };
 
-  const addSubject = () => setForm((f) => ({ ...f, subjects: [...f.subjects, { name: '', teacher: '' }] }));
+  const addSubject = () => {
+  const name = subjectName.trim();
+
+  if (!name) {
+    toast.error("Please enter a subject name.");
+    return;
+  }
+
+  const exists = form.subjects.some(
+    (s) => s.name.toLowerCase() === name.toLowerCase()
+  );
+
+  if (exists) {
+    toast.error("This subject has already been added.");
+    return;
+  }
+
+  setForm((f) => ({
+    ...f,
+    subjects: [
+      ...f.subjects,
+      {
+        name,
+        teacher: subjectTeacher || "",
+      },
+    ],
+  }));
+
+  setSubjectName("");
+  setSubjectTeacher("");
+};
+
   const updateSubject = (i, key, val) =>
     setForm((f) => ({
       ...f,
@@ -63,11 +97,17 @@ const { data: teachers } =
 
   const handleSave = async (e) => {
     e.preventDefault();
+
+    if (!form.classTeacher) {
+  toast.error("Please select a class teacher.");
+  return;
+}
+
     setSaving(true);
     try {
       const payload = {
-        name: form.name,
-        section: form.section,
+        name: form.name.trim(),
+section: form.section.trim(),
         classTeacher: form.classTeacher || undefined,
         subjects: form.subjects
           .filter((s) => s.name.trim())
@@ -89,7 +129,12 @@ const { data: teachers } =
   };
 
   const handleDelete = async (c) => {
-    if (!confirm(`Delete ${c.name} · ${c.section}? Students will be unassigned.`)) return;
+    if (
+  !confirm(
+    `Delete ${c.name} • ${c.section}?\n\nThis class can only be deleted if no students are assigned to it.`
+  )
+)
+  return;
     try {
       await deleteClass(c._id).unwrap();
       toast.success('Class deleted');
@@ -208,8 +253,14 @@ const { data: teachers } =
           </div>
           <div>
             <Label>Class teacher</Label>
-            <Select value={form.classTeacher} onChange={(e) => setForm({ ...form, classTeacher: e.target.value })}>
-              <option value="">None</option>
+           <Select
+  required
+  value={form.classTeacher}
+  onChange={(e) =>
+    setForm({ ...form, classTeacher: e.target.value })
+  }
+>
+  <option value="">Select a class teacher</option>
               {(teachers || []).map((t) => (
                 <option key={t._id} value={t._id}>{t.name}</option>
               ))}
@@ -217,30 +268,75 @@ const { data: teachers } =
           </div>
 
           <div>
-            <div className="mb-2 flex items-center justify-between">
-              <Label className="mb-0">Subjects</Label>
-              <button type="button" onClick={addSubject} className="text-sm font-medium text-brand-600 hover:text-brand-700">
-                + Add subject
-              </button>
-            </div>
-            <div className="space-y-2">
-              {form.subjects.length === 0 && <p className="text-sm text-ink-400">No subjects added.</p>}
-              {form.subjects.map((s, i) => (
-                <div key={i} className="flex gap-2">
-                  <Input className="flex-1" placeholder="Subject name" value={s.name} onChange={(e) => updateSubject(i, 'name', e.target.value)} />
-                  <Select className="flex-1" value={s.teacher} onChange={(e) => updateSubject(i, 'teacher', e.target.value)}>
-                    <option value="">Teacher…</option>
-                    {(teachers || []).map((t) => (
-                      <option key={t._id} value={t._id}>{t.name}</option>
-                    ))}
-                  </Select>
-                  <button type="button" onClick={() => removeSubject(i)} className="rounded-lg p-2 text-ink-400 hover:bg-rose-50 hover:text-rose-600">
-                    <X size={16} />
-                  </button>
-                </div>
-              ))}
-            </div>
+  <Label>Subjects</Label>
+
+  <div className="mt-2 flex gap-2">
+    <Input
+      className="flex-1"
+      placeholder="Subject name"
+      value={subjectName}
+      onChange={(e) => setSubjectName(e.target.value)}
+    />
+
+    <Select
+      className="flex-1"
+      value={subjectTeacher}
+      onChange={(e) => setSubjectTeacher(e.target.value)}
+    >
+      <option value="">Assign teacher (optional)</option>
+
+      {(teachers || []).map((t) => (
+        <option key={t._id} value={t._id}>
+          {t.name}
+        </option>
+      ))}
+    </Select>
+
+    <Button
+      type="button"
+      variant="secondary"
+      onClick={addSubject}
+    >
+      <Plus size={16} />
+      Add
+    </Button>
+  </div>
+
+  {form.subjects.length === 0 ? (
+    <p className="mt-3 text-sm text-ink-400">
+      No subjects added yet.
+    </p>
+  ) : (
+    <div className="mt-4 space-y-2">
+      {form.subjects.map((subject, index) => (
+        <div
+          key={index}
+          className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3"
+        >
+          <div>
+            <p className="font-medium text-ink-800">
+              {subject.name}
+            </p>
+
+            <p className="text-sm text-ink-500">
+              {teachers?.find(
+                (t) => t._id === subject.teacher
+              )?.name || "No teacher assigned"}
+            </p>
           </div>
+
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => removeSubject(index)}
+          >
+            <Trash2 size={16} />
+          </Button>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
         </form>
       </Modal>
 
