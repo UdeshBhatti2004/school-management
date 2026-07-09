@@ -11,7 +11,7 @@ import { registerNoteListeners } from "../lib/socket/noteListeners";
 import { registerLectureListeners } from "../lib/socket/lectureListeners";
 import { registerAttendanceListeners } from "../lib/socket/attendanceListeners";
 import { registerClassListeners } from "../lib/socket/classListeners";
-import { registerFeeListeners } from "../socket/listeners/feeListeners";
+import { registerFeeListeners } from "../lib/socket/feeListeners";
 
 
 export default function SocketProvider({ children }) {
