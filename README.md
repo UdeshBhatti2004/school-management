@@ -1,165 +1,575 @@
-# Scholora — School Management System (MERN)
+# 🎓 Scholora — Modern School Management System (MERN)
 
-A full-stack school management application with three roles — **Admin**, **Teacher**, and **Student** — built with **MongoDB, Express, React, Node.js**, styled with **Tailwind CSS**, and animated with **Framer Motion**.
+> **Scholora** is a production-quality School ERP built using the **MERN Stack** with a modern enterprise architecture. It provides complete school management for **Admins, Teachers, and Students**, featuring real-time synchronization, role-based authentication, Cloudinary file uploads, RTK Query, and Socket.IO.
 
-## Features
+---
 
-**Admin**
-- Dashboard with school-wide stats (teachers, students, classes, fees outstanding, lectures)
-- Manage teachers (departments, subjects, employee IDs)
-- Manage students (roll numbers, class assignment, guardian details)
-- Create and manage classes, assign class teachers and subject teachers, view rosters
-- **Attendance overview** — per-student attendance percentages by class
-- **Fees** — issue fees to a student or a whole class, record full/partial payments, track collection (billed / collected / outstanding)
-- Post announcements to the whole school, teachers, students, or a specific class
+## ✨ Features
 
-**Teacher**
-- Personal dashboard with upcoming due dates
-- **Take attendance** — mark present / late / absent per class and date, prefilled from any existing sheet
-- Create assignments for classes; view and grade student submissions with feedback
-- Publish video lectures (YouTube / Vimeo link, **or upload a video file via Cloudinary**)
-- **Notes & materials** — upload PDFs/docs/images (Cloudinary) or share links
-- Post announcements
+### 👨‍💼 Admin
 
-**Student**
-- Dashboard showing pending work, grades, and latest lectures
-- View and submit assignments (text + link), resubmit until graded, see marks & feedback
-- Watch lectures (embedded or uploaded) shared with their class
-- **My attendance** — attendance percentage and full history
-- **My fees** — outstanding dues, paid history, and statuses
-- **Notes** — view and download materials shared with their class
+- Professional dashboard with school-wide analytics
+- Manage Teachers
+- Manage Students
+- Manage Classes
+- Assign Class Teachers
+- Assign Subject Teachers
+- Prevent duplicate classes
+- Prevent duplicate subjects
+- Manage Announcements
+- Manage Assignments
+- Manage Lectures
+- Manage Notes & Study Materials
+- View Attendance Overview
+- Issue Fees to:
+  - Individual Student
+  - Entire Class
+- Record Full & Partial Payments
+- View Fee Collection Summary
+- Manage User Profiles
 
-**Across the app**
-- JWT authentication with role-based access control on every route
-- File uploads to Cloudinary (videos, notes) with graceful fallback to links when not configured
-- Profile management and password change
-- Professional, responsive UI with subtle motion (respects `prefers-reduced-motion`)
+---
 
-## Tech stack
+### 👨‍🏫 Teacher
 
-| Layer    | Tech                                                       |
-|----------|------------------------------------------------------------|
-| Frontend | React 18, Vite, React Router, Tailwind CSS, Framer Motion, Axios, lucide-react, react-hot-toast |
-| Backend  | Node.js, Express, Mongoose, JSON Web Tokens, bcryptjs      |
-| Database | MongoDB (local or Atlas)                                   |
+- Personal Dashboard
+- View Assigned Classes
+- Take Attendance
+- Edit Existing Attendance
+- Create Assignments
+- Edit Assignments
+- Delete Assignments
+- View Student Submissions
+- Grade Assignments
+- Provide Feedback
+- Publish Video Lectures
+- Upload Lecture Videos (Cloudinary)
+- Share YouTube/Vimeo Links
+- Edit/Delete Lectures
+- Upload Notes & Study Materials
+- Upload PDFs, Images & Documents
+- Edit/Delete Notes
+- Post Announcements
+- Manage Profile
 
-## Project structure
+---
+
+### 👨‍🎓 Student
+
+- Personal Dashboard
+- View Assignments
+- Submit Assignments
+- Resubmit Assignments (until graded)
+- View Grades & Feedback
+- Watch Video Lectures
+- View Notes & Study Materials
+- Download Shared Materials
+- View Attendance History
+- View Attendance Percentage
+- View Fee Records
+- View Payment History
+- View Outstanding Fees
+- Manage Profile
+
+---
+
+# 🚀 Production Features
+
+- ✅ JWT Authentication
+- ✅ Role-Based Authorization
+- ✅ Multi-School Architecture
+- ✅ RTK Query Data Layer
+- ✅ Socket.IO Realtime Updates
+- ✅ Cloudinary File Uploads
+- ✅ Responsive UI
+- ✅ Professional Dashboard
+- ✅ Enterprise Business Rules
+- ✅ Audit Information
+- ✅ Modern UI Components
+- ✅ Tailwind CSS
+- ✅ Framer Motion Animations
+
+---
+
+# ⚡ Realtime Architecture
+
+Scholora follows a centralized realtime architecture.
+
+```
+Controller
+      │
+      ▼
+Socket.IO Emit
+      │
+      ▼
+SocketProvider
+      │
+      ▼
+Module Listener
+      │
+      ▼
+RTK Query invalidateTags()
+      │
+      ▼
+Automatic Refetch
+      │
+      ▼
+Updated UI
+```
+
+Socket.IO is implemented for:
+
+- Assignments
+- Announcements
+- Notes
+- Lectures
+- Attendance
+- Classes
+- Fees
+
+---
+
+# 🏗️ Business Rules
+
+## Authentication
+
+- JWT Authentication
+- Role-Based Authorization
+- School-Based Data Isolation
+
+---
+
+## Classes
+
+- One Class Teacher per Class
+- One Teacher cannot be Class Teacher of multiple Classes
+- Duplicate Classes prevented
+- Duplicate Subjects prevented
+- Subject Teachers validated
+- Cannot delete Class containing Students
+
+---
+
+## Attendance
+
+- Attendance belongs to:
+  - Class
+  - Date
+
+- Only Class Teacher can mark Attendance
+
+- Attendance can be edited
+
+- Audit information maintained
+
+- Duplicate students prevented
+
+- Invalid attendance statuses rejected
+
+---
+
+## Assignments
+
+- Teachers create assignments
+- Students submit work
+- Students may resubmit until graded
+- Marks validated
+- Feedback supported
+
+---
+
+## Lectures
+
+Supports
+
+- YouTube
+- Vimeo
+- Uploaded Videos
+
+Automatic Cloudinary cleanup on delete.
+
+---
+
+## Notes
+
+Supports
+
+- PDF
+- Images
+- Documents
+- External Links
+
+Automatic Cloudinary cleanup.
+
+---
+
+## Fees
+
+Supports
+
+- Individual Student Fees
+- Whole Class Fee Issuing
+- Partial Payments
+- Payment History
+- Outstanding Balance
+- Collection Summary
+
+Business Rules
+
+- Cannot overpay
+- Paid Fees cannot be edited
+- Paid Fees cannot be paid again
+- Fees with payments cannot be deleted
+
+---
+
+# 🛠️ Tech Stack
+
+## Frontend
+
+- React 18
+- Vite
+- React Router
+- Redux Toolkit
+- RTK Query
+- Tailwind CSS
+- Framer Motion
+- Socket.IO Client
+- Axios
+- React Hot Toast
+- Lucide React
+
+---
+
+## Backend
+
+- Node.js
+- Express.js
+- MongoDB
+- Mongoose
+- JWT Authentication
+- bcryptjs
+- Socket.IO
+- Cloudinary
+- Express Async Handler
+
+---
+
+## Database
+
+- MongoDB Atlas
+
+---
+
+# 📁 Project Structure
 
 ```
 school-management/
-├── server/                 # Express API
-│   ├── config/db.js        # Mongo connection
-│   ├── models/             # User, ClassRoom, Assignment, Submission, Lecture, Announcement
-│   ├── middleware/         # auth (protect + authorize), error handling
-│   ├── controllers/        # business logic
-│   ├── routes/             # REST endpoints
-│   ├── seed.js             # demo data + accounts
-│   └── server.js           # entry point
-└── client/                 # React app
-    └── src/
-        ├── api/client.js       # axios instance w/ token interceptor
-        ├── context/            # AuthContext
-        ├── components/         # layout + UI primitives
-        ├── lib/                # helpers, nav config, useFetch
-        └── pages/              # admin / teacher / student / shared
+
+├── client
+│   ├── src
+│   │   ├── app
+│   │   ├── components
+│   │   ├── features
+│   │   │   ├── assignments
+│   │   │   ├── attendance
+│   │   │   ├── announcements
+│   │   │   ├── classes
+│   │   │   ├── fees
+│   │   │   ├── lectures
+│   │   │   ├── notes
+│   │   │   ├── users
+│   │   │   └── auth
+│   │   ├── pages
+│   │   ├── redux
+│   │   ├── socket
+│   │   │   ├── listeners
+│   │   │   └── SocketProvider.jsx
+│   │   └── utils
+│
+├── server
+│   ├── config
+│   ├── controllers
+│   ├── middleware
+│   ├── models
+│   ├── routes
+│   ├── socket
+│   ├── utils
+│   └── server.js
 ```
 
-## Getting started
+---
 
-### Prerequisites
-- Node.js 18+
-- MongoDB running locally, **or** a MongoDB Atlas connection string
+# 📡 REST API
 
-### 1. Backend
-
-```bash
-cd server
-npm install
-cp .env.example .env        # then edit .env (set MONGO_URI and JWT_SECRET)
-npm run seed                # creates demo accounts + sample data
-npm run dev                 # starts API on http://localhost:5000
-```
-
-### 2. Frontend (in a second terminal)
-
-```bash
-cd client
-npm install
-npm run dev                 # starts app on http://localhost:5173
-```
-
-The Vite dev server proxies `/api` to the backend automatically, so no extra config is needed in development.
-
-### 3. Sign in
-
-Open http://localhost:5173 and use one of the seeded demo accounts (all use password **`password123`**). The login screen has one-tap buttons to fill each:
-
-| Role    | Email                |
-|---------|----------------------|
-| Admin   | admin@school.edu     |
-| Teacher | teacher@school.edu   |
-| Student | student@school.edu   |
-
-## Environment variables (`server/.env`)
+## Authentication
 
 ```
+POST   /api/auth/login
+POST   /api/auth/register
+GET    /api/auth/me
+PUT    /api/auth/profile
+PUT    /api/auth/password
+```
+
+---
+
+## Users
+
+```
+GET    /api/users
+POST   /api/users
+PUT    /api/users/:id
+DELETE /api/users/:id
+GET    /api/users/stats/overview
+```
+
+---
+
+## Classes
+
+```
+GET    /api/classes
+GET    /api/classes/:id
+POST   /api/classes
+PUT    /api/classes/:id
+DELETE /api/classes/:id
+```
+
+---
+
+## Attendance
+
+```
+POST   /api/attendance
+GET    /api/attendance
+GET    /api/attendance/me
+GET    /api/attendance/summary
+```
+
+---
+
+## Assignments
+
+```
+GET    /api/assignments
+POST   /api/assignments
+PUT    /api/assignments/:id
+DELETE /api/assignments/:id
+
+POST   /api/assignments/:id/submit
+GET    /api/assignments/:id/submissions
+PUT    /api/submissions/:id/grade
+```
+
+---
+
+## Lectures
+
+```
+GET    /api/lectures
+POST   /api/lectures
+PUT    /api/lectures/:id
+DELETE /api/lectures/:id
+```
+
+---
+
+## Notes
+
+```
+GET    /api/notes
+POST   /api/notes
+PUT    /api/notes/:id
+DELETE /api/notes/:id
+```
+
+---
+
+## Fees
+
+```
+GET    /api/fees
+GET    /api/fees/summary
+
+POST   /api/fees
+
+PUT    /api/fees/:id
+PUT    /api/fees/:id/pay
+
+DELETE /api/fees/:id
+```
+
+---
+
+## Announcements
+
+```
+GET    /api/announcements
+POST   /api/announcements
+PUT    /api/announcements/:id
+DELETE /api/announcements/:id
+```
+
+---
+
+## Uploads
+
+```
+POST /api/upload
+```
+
+---
+
+# ☁️ File Uploads
+
+Teachers can upload:
+
+- Lecture Videos
+- PDFs
+- Images
+- Documents
+
+Uploads are stored securely using **Cloudinary**.
+
+If Cloudinary is not configured, the application gracefully falls back to link-based resources.
+
+---
+
+# 🔐 Authentication
+
+- JWT Authentication
+- Password Hashing using bcrypt
+- Protected Routes
+- Role-Based Authorization
+- Multi-School Data Isolation
+
+---
+
+# ⚙️ Environment Variables
+
+```env
 PORT=5000
+
 NODE_ENV=development
-MONGO_URI=mongodb://127.0.0.1:27017/school_management
-JWT_SECRET=replace_this_with_a_long_random_secret
+
+MONGO_URI=
+
+JWT_SECRET=
+
 JWT_EXPIRES_IN=7d
+
 CLIENT_URL=http://localhost:5173
 
-# Optional — enables file uploads for lectures and notes.
-# Without these, the app still works; teachers just paste links instead.
 CLOUDINARY_CLOUD_NAME=
+
 CLOUDINARY_API_KEY=
+
 CLOUDINARY_API_SECRET=
 ```
 
-### Enabling file uploads (Cloudinary)
+---
 
-1. Create a free account at **cloudinary.com** and open the **Dashboard**.
-2. Copy your **Cloud name**, **API Key**, and **API Secret** into the three `CLOUDINARY_*` variables above.
-3. Restart the server. Teachers will now see an **Upload** option for lecture videos and notes; without the keys those toggles return a clear "uploads not configured" message and links keep working.
+# 🚀 Getting Started
 
-> Note: Cloudinary's free tier has size/bandwidth limits that are fine for development. For large video at scale you'd move to dedicated video storage, but the upload flow and database fields are already in place.
-
-## API overview
-
-| Method | Endpoint                          | Access            | Purpose                         |
-|--------|-----------------------------------|-------------------|---------------------------------|
-| POST   | `/api/auth/login`                 | public            | Sign in                         |
-| GET    | `/api/auth/me`                    | any               | Current user                    |
-| PUT    | `/api/auth/profile` `/password`   | any               | Update profile / password       |
-| GET/POST | `/api/users`                    | admin             | List / create users             |
-| PUT/DELETE | `/api/users/:id`              | admin             | Update / delete user            |
-| GET    | `/api/users/stats/overview`       | admin             | Dashboard counts                |
-| GET/POST | `/api/classes`                  | read: any, write: admin | Classes                   |
-| GET/POST | `/api/assignments`              | role-scoped       | List / create assignments       |
-| POST   | `/api/assignments/:id/submit`     | student           | Submit work                     |
-| GET    | `/api/assignments/:id/submissions`| teacher/admin     | View submissions                |
-| PUT    | `/api/submissions/:id/grade`      | teacher/admin     | Grade a submission              |
-| GET/POST | `/api/lectures`                 | role-scoped       | List / create lectures          |
-| GET/POST | `/api/notes`                    | role-scoped       | List / create notes & materials |
-| POST   | `/api/attendance`                 | teacher/admin     | Mark attendance (upsert)        |
-| GET    | `/api/attendance/me`              | student           | Own attendance + summary        |
-| GET    | `/api/attendance/summary`         | admin/teacher     | Per-student % for a class       |
-| GET/POST | `/api/fees`                     | role-scoped       | List / issue fees               |
-| PUT    | `/api/fees/:id/pay`               | admin             | Record a payment                |
-| POST   | `/api/upload`                     | teacher/admin     | Upload a file to Cloudinary     |
-| GET/POST | `/api/announcements`            | role-scoped       | List / create announcements     |
-
-## Building for production
+## Clone Repository
 
 ```bash
-cd client && npm run build      # outputs static files to client/dist
+git clone https://github.com/your-username/scholora.git
+
+cd scholora
 ```
 
-Serve `client/dist` from any static host (or from Express) and point it at the deployed API. Remember to set `NODE_ENV=production`, a strong `JWT_SECRET`, and the correct `CLIENT_URL` on the server.
+---
 
-## Notes & extension ideas
+## Backend
 
-- **Video uploads:** lectures currently use links (embeds for YouTube/Vimeo). The `Lecture` model already has a `sourceType: 'upload'` field and the server serves `/uploads` statically — wire up `multer` (already a dependency) to accept file uploads when you need them.
-- **Attendance, timetable, fees:** the model layer is structured to extend — add a model, a controller, a route, and a page following the existing patterns.
-- Passwords are hashed with bcrypt; tokens are stored client-side in `localStorage` and sent as `Bearer` tokens.
+```bash
+cd server
+
+npm install
+
+npm run seed
+
+npm run dev
+```
+
+---
+
+## Frontend
+
+```bash
+cd client
+
+npm install
+
+npm run dev
+```
+
+---
+
+## Demo Accounts
+
+| Role | Email |
+|------|-------|
+| Admin | admin@school.edu |
+| Teacher | teacher@school.edu |
+| Student | student@school.edu |
+
+Password
+
+```
+password123
+```
+
+---
+
+# 📈 Current Modules
+
+- ✅ Authentication
+- ✅ Dashboard
+- ✅ Users
+- ✅ Classes
+- ✅ Attendance
+- ✅ Assignments
+- ✅ Lectures
+- ✅ Notes
+- ✅ Announcements
+- ✅ Fees
+- 🚧 Examinations (Upcoming)
+- 🚧 Timetable (Upcoming)
+- 🚧 Leave Management (Upcoming)
+- 🚧 Library (Upcoming)
+
+---
+
+# 🎯 Future Enhancements
+
+- Online Fee Payment Gateway
+- Receipt Generation
+- Examination & Result Management
+- Timetable Generator
+- Leave Management
+- Library Management
+- Transport Management
+- Inventory Management
+- Parent Portal
+- Mobile Application
+- Notifications
+- Email & SMS Integration
+- Report Card Generation
+- Analytics Dashboard
+
+---
+
+# 📄 License
+
+This project is licensed under the **MIT License**.
+
+---
+
+# 👨‍💻 Author
+
+**Udesh Bhatti**
+
+Built with ❤️ using the MERN Stack.
