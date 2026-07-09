@@ -1,6 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import Fee from '../models/Fee.js';
 import ClassRoom from '../models/ClassRoom.js';
+import { getIO } from "../socket/index.js";
 
 // @route  GET /api/fees   (admin: all/filtered; student: own)
 export const getFees = asyncHandler(async (req, res) => {
@@ -43,11 +44,34 @@ export const getFeeSummary = asyncHandler(async (req, res) => {
 // @route  POST /api/fees   (admin)
 // Create a fee for one student, or for an entire class (issueToClass=classId)
 export const createFee = asyncHandler(async (req, res) => {
-  const { title, amount, dueDate, issueToClass, student, notes } = req.body;
-  if (!title || !amount || !dueDate) {
-    res.status(400);
-    throw new Error('Title, amount and due date are required');
-  }
+ const { title, amount, dueDate, issueToClass, student, notes } = req.body;
+
+const trimmedTitle = title?.trim();
+
+if (!trimmedTitle || !amount || !dueDate) {
+  res.status(400);
+  throw new Error("Title, amount and due date are required.");
+}
+
+if (trimmedTitle.length < 3 || trimmedTitle.length > 100) {
+  res.status(400);
+  throw new Error("Title must be between 3 and 100 characters.");
+}
+
+const feeAmount = Number(amount);
+
+if (isNaN(feeAmount) || feeAmount <= 0) {
+  res.status(400);
+  throw new Error("Amount must be greater than 0.");
+}
+
+const parsedDueDate = new Date(dueDate);
+
+if (isNaN(parsedDueDate.getTime())) {
+  res.status(400);
+  throw new Error("Invalid due date.");
+}
+
 
   if (issueToClass) {
     const cls = await ClassRoom.findOne({
@@ -61,15 +85,22 @@ export const createFee = asyncHandler(async (req, res) => {
     const docs = cls.students.map((s) => ({
   student: s._id,
   classRoom: cls._id,
-  title,
-  amount,
+  title: trimmedTitle,
+  amount: feeAmount,
   dueDate,
   notes,
   createdBy: req.user._id,
   school: req.user.school,
 }));
     const created = await Fee.insertMany(docs);
-    return res.status(201).json({ message: `Issued to ${created.length} students`, count: created.length });
+
+getIO().emit("fee:created", created);
+
+return res.status(201).json({
+  message: `Issued to ${created.length} students`,
+  count: created.length,
+});
+
   }
 
   if (!student) {
@@ -78,14 +109,23 @@ export const createFee = asyncHandler(async (req, res) => {
   }
 const fee = await Fee.create({
   student,
-  title,
-  amount,
+  title: trimmedTitle,
+  amount: feeAmount,
   dueDate,
   notes,
   createdBy: req.user._id,
   school: req.user.school,
-});  const populated = await Fee.findById(fee._id).populate('student', 'name rollNumber');
-  res.status(201).json(populated);
+}); 
+
+const populated = await Fee.findById(fee._id).populate(
+  "student",
+  "name rollNumber"
+);
+
+getIO().emit("fee:created", populated);
+
+res.status(201).json(populated);
+
 });
 
 // @route  PUT /api/fees/:id/pay   (admin) — record a payment
@@ -105,6 +145,13 @@ const fee = await Fee.findOne({
 } = req.body;
 
 const amount = Number(paidAmount);
+
+const trimmedRemarks = remarks.trim();
+
+if (trimmedRemarks.length > 500) {
+  res.status(400);
+  throw new Error("Remarks cannot exceed 500 characters.");
+}
 
 const allowedMethods = [
   "cash",
@@ -141,7 +188,7 @@ if (fee.status === "paid") {
 fee.payments.push({
   amount,
   method,
-  remarks,
+  remarks: trimmedRemarks,
   receivedBy: req.user._id,
 });
 
@@ -153,8 +200,11 @@ if (fee.paidAmount >= fee.amount) {
   fee.status = "partial";
 }
 
-  await fee.save();
-  res.json(fee);
+ await fee.save();
+
+getIO().emit("fee:paymentRecorded", fee);
+
+res.json(fee);
 });
 
 // @route  PUT /api/fees/:id   (admin) — edit
@@ -174,9 +224,54 @@ export const updateFee = asyncHandler(async (req, res) => {
     throw new Error("Paid fees cannot be edited.");
   }
 
-  ['title', 'amount', 'dueDate', 'notes',].forEach((f) => {
-    if (req.body[f] !== undefined) fee[f] = req.body[f];
-  });
+  if (req.body.title !== undefined) {
+  const trimmedTitle = req.body.title.trim();
+
+  if (!trimmedTitle) {
+    res.status(400);
+    throw new Error("Title is required.");
+  }
+
+  if (trimmedTitle.length < 3 || trimmedTitle.length > 100) {
+    res.status(400);
+    throw new Error("Title must be between 3 and 100 characters.");
+  }
+
+  fee.title = trimmedTitle;
+}
+
+if (req.body.amount !== undefined) {
+  const amount = Number(req.body.amount);
+
+  if (isNaN(amount) || amount <= 0) {
+    res.status(400);
+    throw new Error("Amount must be greater than 0.");
+  }
+
+  fee.amount = amount;
+}
+
+if (req.body.dueDate !== undefined) {
+  const parsedDueDate = new Date(req.body.dueDate);
+
+  if (isNaN(parsedDueDate.getTime())) {
+    res.status(400);
+    throw new Error("Invalid due date.");
+  }
+
+  fee.dueDate = req.body.dueDate;
+}
+
+if (req.body.notes !== undefined) {
+  const trimmedNotes = req.body.notes.trim();
+
+  if (trimmedNotes.length > 500) {
+    res.status(400);
+    throw new Error("Notes cannot exceed 500 characters.");
+  }
+
+  fee.notes = trimmedNotes;
+}
 
   // ✅ Add it here
   if (fee.amount < fee.paidAmount) {
@@ -188,7 +283,9 @@ export const updateFee = asyncHandler(async (req, res) => {
 
   await fee.save();
 
-  res.json(fee);
+getIO().emit("fee:updated", fee);
+
+res.json(fee);
 });
 
 // @route  DELETE /api/fees/:id   (admin)
@@ -210,5 +307,8 @@ export const deleteFee = asyncHandler(async (req, res) => {
 }
 
   await fee.deleteOne();
-  res.json({ message: 'Fee record removed' });
+
+getIO().emit("fee:deleted", fee);
+
+res.json({ message: "Fee record removed" });
 });

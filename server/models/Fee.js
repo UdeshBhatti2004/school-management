@@ -10,8 +10,18 @@ const feeSchema = new mongoose.Schema(
           ref: "School",
           required: true,
         },
-    title: { type: String, required: true }, // e.g. "Term 1 Tuition"
-    amount: { type: Number, required: true },
+    title: {
+  type: String,
+  required: true,
+  trim: true,
+  minlength: 3,
+  maxlength: 100,
+}, // e.g. "Term 1 Tuition"
+    amount: {
+  type: Number,
+  required: true,
+  min: 1,
+},
     dueDate: { type: Date, required: true },
     status: { type: String, enum: ['pending', 'paid', 'partial'], default: 'pending' },
     paidAmount: { type: Number, default: 0 },
@@ -48,7 +58,12 @@ const feeSchema = new mongoose.Schema(
     },
   },
 ], // cash, upi, card, bank
-    notes: { type: String, default: '' },
+    notes: {
+  type: String,
+  default: "",
+  trim: true,
+  maxlength: 500,
+},
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }

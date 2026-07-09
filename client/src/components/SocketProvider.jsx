@@ -11,7 +11,7 @@ import { registerNoteListeners } from "../lib/socket/noteListeners";
 import { registerLectureListeners } from "../lib/socket/lectureListeners";
 import { registerAttendanceListeners } from "../lib/socket/attendanceListeners";
 import { registerClassListeners } from "../lib/socket/classListeners";
-
+import { registerFeeListeners } from "../socket/listeners/feeListeners";
 
 
 export default function SocketProvider({ children }) {
@@ -64,6 +64,11 @@ const cleanupClasses = registerClassListeners(
   dispatch
 );
 
+const cleanupFees = registerFeeListeners(
+  socket, 
+  dispatch
+);
+
 
  return () => {
   cleanupAssignments();
@@ -73,6 +78,7 @@ const cleanupClasses = registerClassListeners(
   cleanupAttendance();
 
   cleanupClasses();
+  cleanupFees();
 
   socket.disconnect();
 };
