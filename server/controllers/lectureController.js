@@ -228,7 +228,7 @@ if (sourceType === 'upload' && !publicId?.trim()) {
     .populate('classRoom', 'name section')
     .populate('createdBy', 'name');
 
-getIO().emit("lecture:created", populated);
+getIO().to(`school:${req.user.school}`).emit("lecture:created", populated);
 
   res.status(201).json(populated);
 });
@@ -509,7 +509,7 @@ const updatedLecture = await Lecture.findById(lecture._id)
   .populate('classRoom', 'name section')
   .populate('createdBy', 'name');
 
-getIO().emit("lecture:updated", updatedLecture);
+getIO().to(`school:${req.user.school}`).emit("lecture:updated", updatedLecture);
 
 res.json(updatedLecture);
   });
@@ -553,7 +553,7 @@ const lectureId = lecture._id.toString();
 
 await lecture.deleteOne();
 
-getIO().emit("lecture:deleted", lecture._id);
+getIO().to(`school:${req.user.school}`).emit("lecture:deleted", lecture._id);
 
 res.json({ message: 'Lecture removed' });
 });

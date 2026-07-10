@@ -2,14 +2,13 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { logout } from '../auth/authSlice';
 
 const rawBaseQuery = fetchBaseQuery({
-  baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:5000/api' || "http://192.168.0.110:5173/",
+  baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
   prepareHeaders: (headers, { getState }) => {
     const token = getState().auth.token;
     if (token) headers.set('Authorization', `Bearer ${token}`);
     return headers;
   },
 });
-console.log(import.meta.env.VITE_API_URL);
 
 // Wraps the base query so an expired/invalid token clears auth state and
 // bounces to /login the same way the old axios interceptor did.

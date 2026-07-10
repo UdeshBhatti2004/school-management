@@ -14,6 +14,21 @@ import Submission from './models/Submission.js';
 
 dotenv.config();
 
+if (process.env.NODE_ENV === 'production') {
+  console.error(
+    'Refusing to run: seed.js deletes ALL data and must never run with NODE_ENV=production.'
+  );
+  process.exit(1);
+}
+
+if (process.argv[2] !== '--yes-wipe-data') {
+  console.error(
+    'This will DELETE ALL existing data in the database at MONGO_URI.\n' +
+    'Re-run as: node seed.js --yes-wipe-data'
+  );
+  process.exit(1);
+}
+
 const run = async () => {
   await connectDB();
   console.log('Clearing existing data...');

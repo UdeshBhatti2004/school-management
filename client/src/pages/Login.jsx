@@ -28,8 +28,6 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 if (!isValidEmail(email)) {
   setErrors((prev) => ({
     ...prev,

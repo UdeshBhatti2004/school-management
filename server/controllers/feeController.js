@@ -94,7 +94,7 @@ if (isNaN(parsedDueDate.getTime())) {
 }));
     const created = await Fee.insertMany(docs);
 
-getIO().emit("fee:created", created);
+getIO().to(`school:${req.user.school}`).emit("fee:created", created);
 
 return res.status(201).json({
   message: `Issued to ${created.length} students`,
@@ -122,7 +122,7 @@ const populated = await Fee.findById(fee._id).populate(
   "name rollNumber"
 );
 
-getIO().emit("fee:created", populated);
+getIO().to(`school:${req.user.school}`).emit("fee:created", populated);
 
 res.status(201).json(populated);
 
@@ -202,7 +202,7 @@ if (fee.paidAmount >= fee.amount) {
 
  await fee.save();
 
-getIO().emit("fee:paymentRecorded", fee);
+getIO().to(`school:${req.user.school}`).emit("fee:paymentRecorded", fee);
 
 res.json(fee);
 });
@@ -283,7 +283,7 @@ if (req.body.notes !== undefined) {
 
   await fee.save();
 
-getIO().emit("fee:updated", fee);
+getIO().to(`school:${req.user.school}`).emit("fee:updated", fee);
 
 res.json(fee);
 });
@@ -308,7 +308,7 @@ export const deleteFee = asyncHandler(async (req, res) => {
 
   await fee.deleteOne();
 
-getIO().emit("fee:deleted", fee);
+getIO().to(`school:${req.user.school}`).emit("fee:deleted", fee);
 
 res.json({ message: "Fee record removed" });
 });

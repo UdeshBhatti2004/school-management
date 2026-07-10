@@ -83,7 +83,7 @@ const cleanupFees = registerFeeListeners(
   socket.disconnect();
 };
 
-}, [user, token, dispatch]);
+}, [user?._id, token, dispatch]);
 
   return children;
 }

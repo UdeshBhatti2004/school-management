@@ -136,7 +136,7 @@ section: (section || "A").trim(),
 });
 
 
-getIO().emit("class:created");
+getIO().to(`school:${req.user.school}`).emit("class:created");
 
 
   res.status(201).json(classRoom);
@@ -243,7 +243,7 @@ if (req.body.subjects?.length) {
     if (req.body[f] !== undefined) classRoom[f] = req.body[f];
   });
   await classRoom.save();
-  getIO().emit("class:updated");
+  getIO().to(`school:${req.user.school}`).emit("class:updated");
   res.json(classRoom);
 });
 
@@ -273,7 +273,7 @@ if (assignedStudents > 0) {
 
 await classRoom.deleteOne();
 
-getIO().emit("class:deleted");
+getIO().to(`school:${req.user.school}`).emit("class:deleted");
 
   res.json({ message: 'Class removed' });
 });

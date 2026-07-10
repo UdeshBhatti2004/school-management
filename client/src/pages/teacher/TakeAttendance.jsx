@@ -150,9 +150,6 @@ useEffect(() => {
   );
 }, [students, marks]);
 
-console.log("User:", user);
-console.log("Filtered Classes:", filteredClasses);
-
   return (
     <div>
       <PageHeader title="Attendance" subtitle="Mark attendance for your class." />

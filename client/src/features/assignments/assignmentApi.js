@@ -58,7 +58,7 @@ export const assignmentApi = apiSlice.injectEndpoints({
 }),
 
     gradeSubmission: builder.mutation({
-  query: ({ submissionId, ...body }) => ({
+  query: ({ submissionId, assignmentId, ...body }) => ({
     url: `/submissions/${submissionId}/grade`,
     method: 'PUT',
     body,

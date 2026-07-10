@@ -57,10 +57,17 @@ export const createUser = asyncHandler(async (req, res) => {
     throw new Error('A user with that email already exists');
   }
 
-const user = await User.create({
-  ...req.body,
-  school: req.user.school,
+const allowedFields = [
+  'name', 'email', 'password', 'role', 'phone', 'avatar',
+  'employeeId', 'department', 'subjects',
+  'rollNumber', 'classRoom', 'guardianName', 'guardianPhone',
+];
+const userData = { school: req.user.school };
+allowedFields.forEach((f) => {
+  if (req.body[f] !== undefined) userData[f] = req.body[f];
 });
+
+const user = await User.create(userData);
 
   // If a student is assigned to a class, keep the classroom roster in sync
   if (user.role === 'student' && user.classRoom) {
@@ -83,9 +90,16 @@ const user = await User.findOne({
   }
 
   const prevClass = user.classRoom?.toString();
+  const prevRole = user.role;
+
+  if (req.body.role !== undefined && !['admin', 'teacher', 'student'].includes(req.body.role)) {
+    res.status(400);
+    throw new Error('Invalid role');
+  }
+
   const fields = [
     'name', 'email', 'phone', 'avatar', 'isActive', 'employeeId',
-    'department', 'subjects', 'rollNumber', 'classRoom', 'guardianName', 'guardianPhone',
+    'department', 'subjects', 'rollNumber', 'classRoom', 'guardianName', 'guardianPhone', 'role',
   ];
   fields.forEach((f) => {
     if (req.body[f] !== undefined) user[f] = req.body[f];
@@ -93,15 +107,13 @@ const user = await User.findOne({
   if (req.body.password) user.password = req.body.password;
   await user.save();
 
-  // Sync classroom roster if a student's class changed
-  if (user.role === 'student') {
-    const newClass = user.classRoom?.toString();
-    if (prevClass && prevClass !== newClass) {
-      await ClassRoom.findByIdAndUpdate(prevClass, { $pull: { students: user._id } });
-    }
-    if (newClass && newClass !== prevClass) {
-      await ClassRoom.findByIdAndUpdate(newClass, { $addToSet: { students: user._id } });
-    }
+  // Sync classroom roster if a student's class changed, or if the user's role changed away from/to student
+  const newClass = user.classRoom?.toString();
+  if (prevRole === 'student' && prevClass && (user.role !== 'student' || prevClass !== newClass)) {
+    await ClassRoom.findByIdAndUpdate(prevClass, { $pull: { students: user._id } });
+  }
+  if (user.role === 'student' && newClass && (prevRole !== 'student' || prevClass !== newClass)) {
+    await ClassRoom.findByIdAndUpdate(newClass, { $addToSet: { students: user._id } });
   }
 
   const updated = await User.findById(user._id).populate('classRoom', 'name section');

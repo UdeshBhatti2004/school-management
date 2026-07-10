@@ -1,38 +1,48 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { Suspense, lazy } from 'react';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardLayout from './components/layout/DashboardLayout';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from './features/auth/authSlice';
+import { Spinner } from './components/ui/primitives';
 
 import Login from './pages/Login';
-
-import AdminDashboard from './pages/admin/AdminDashboard';
-import Teachers from './pages/admin/Teachers';
-import Students from './pages/admin/Students';
-import Classes from './pages/admin/Classes';
-import AttendanceOverview from './pages/admin/AttendanceOverview';
-import FeesManager from './pages/admin/FeesManager';
-
-import TeacherDashboard from './pages/teacher/TeacherDashboard';
-import TeacherAssignments from './pages/teacher/TeacherAssignments';
-import TeacherLectures from './pages/teacher/TeacherLectures';
-import TeacherNotes from './pages/teacher/TeacherNotes';
-import TakeAttendance from './pages/teacher/TakeAttendance';
-
-import StudentDashboard from './pages/student/StudentDashboard';
-import StudentAssignments from './pages/student/StudentAssignments';
-import StudentLectures from './pages/student/StudentLectures';
-import StudentNotes from './pages/student/StudentNotes';
-import MyAttendance from './pages/student/MyAttendance';
-import MyFees from './pages/student/MyFees';
-
-import Announcements from './pages/shared/Announcements';
-import Profile from './pages/shared/Profile';
 import Register from './pages/Register';
 import SocketProvider from './components/SocketProvider';
 
+// Route-level code splitting: each dashboard page becomes its own chunk,
+// loaded only when a user with that role actually navigates to it.
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const Teachers = lazy(() => import('./pages/admin/Teachers'));
+const Students = lazy(() => import('./pages/admin/Students'));
+const Classes = lazy(() => import('./pages/admin/Classes'));
+const AttendanceOverview = lazy(() => import('./pages/admin/AttendanceOverview'));
+const FeesManager = lazy(() => import('./pages/admin/FeesManager'));
 
+const TeacherDashboard = lazy(() => import('./pages/teacher/TeacherDashboard'));
+const TeacherAssignments = lazy(() => import('./pages/teacher/TeacherAssignments'));
+const TeacherLectures = lazy(() => import('./pages/teacher/TeacherLectures'));
+const TeacherNotes = lazy(() => import('./pages/teacher/TeacherNotes'));
+const TakeAttendance = lazy(() => import('./pages/teacher/TakeAttendance'));
+
+const StudentDashboard = lazy(() => import('./pages/student/StudentDashboard'));
+const StudentAssignments = lazy(() => import('./pages/student/StudentAssignments'));
+const StudentLectures = lazy(() => import('./pages/student/StudentLectures'));
+const StudentNotes = lazy(() => import('./pages/student/StudentNotes'));
+const MyAttendance = lazy(() => import('./pages/student/MyAttendance'));
+const MyFees = lazy(() => import('./pages/student/MyFees'));
+
+const Announcements = lazy(() => import('./pages/shared/Announcements'));
+const Profile = lazy(() => import('./pages/shared/Profile'));
+
+function PageFallback() {
+  return (
+    <div className="flex h-[60vh] items-center justify-center">
+      <Spinner className="h-8 w-8" />
+    </div>
+  );
+}
 
 // Render a component chosen by the current user's role; redirect if no match
 function ByRole({ admin, teacher, student }) {
@@ -55,6 +65,7 @@ export default function App() {
             style: { borderRadius: '10px', fontSize: '14px', border: '1px solid #e2e8f0' },
           }}
         />
+        <Suspense fallback={<PageFallback />}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -93,6 +104,7 @@ export default function App() {
           <Route path="/" element={<Navigate to="/app" replace />} />
           <Route path="*" element={<Navigate to="/app" replace />} />
         </Routes>
+        </Suspense>
       </BrowserRouter>
       </SocketProvider>
 

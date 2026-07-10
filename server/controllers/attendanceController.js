@@ -29,6 +29,12 @@ if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
   throw new Error('Invalid date format');
 }
 
+const todayStr = new Date().toISOString().slice(0, 10);
+if (date > todayStr) {
+  res.status(400);
+  throw new Error('Cannot mark attendance for a future date');
+}
+
 if (records.length === 0) {
   res.status(400);
   throw new Error('Attendance records are required');
@@ -52,12 +58,10 @@ if (!classData.classTeacher) {
   );
 }
 
-if (req.user.role !== "teacher") {
-  res.status(403);
-  throw new Error("Only class teachers can mark attendance.");
-}
-
-if (classData.classTeacher.toString() !== req.user._id.toString()) {
+if (
+  req.user.role === "teacher" &&
+  classData.classTeacher.toString() !== req.user._id.toString()
+) {
   res.status(403);
   throw new Error("You are not the class teacher for this class.");
 }
@@ -141,7 +145,7 @@ const sheet = await Attendance.findOneAndUpdate(
   .populate("records.student", "name rollNumber");
 
 
-getIO().emit("attendance:marked", sheet);
+getIO().to(`school:${req.user.school}`).emit("attendance:marked", sheet);
 
 
 
@@ -159,7 +163,26 @@ getIO().emit("attendance:marked", sheet);
       throw new Error("Invalid class ID");
     }
 
+    if (req.user.role === 'teacher') {
+      const owns = await ClassRoom.findOne({
+        _id: req.query.classRoom,
+        school: req.user.school,
+        classTeacher: req.user._id,
+      });
+      if (!owns) {
+        res.status(403);
+        throw new Error('You are not the class teacher for this class.');
+      }
+    }
+
     filter.classRoom = req.query.classRoom;
+  } else if (req.user.role === 'teacher') {
+    // No classRoom specified: restrict a teacher to only the classes they teach.
+    const ownClasses = await ClassRoom.find({
+      school: req.user.school,
+      classTeacher: req.user._id,
+    }).select('_id');
+    filter.classRoom = { $in: ownClasses.map((c) => c._id) };
   }
   if (req.query.date) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(req.query.date)) {

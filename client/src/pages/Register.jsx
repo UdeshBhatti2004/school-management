@@ -124,6 +124,11 @@ if (newErrors.schoolEmail || newErrors.adminEmail || newErrors.phone) {
   return;
 }
 
+if (form.admin.password.length < 6) {
+  toast.error("Password must be at least 6 characters.");
+  return;
+}
+
     try {
       await register(form).unwrap();
       toast.success('School created successfully.');

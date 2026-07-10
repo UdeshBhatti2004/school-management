@@ -28,7 +28,7 @@ export const getNotes = asyncHandler(async (req, res) => {
   } else if (req.user.role === 'teacher') {
     filter.createdBy = req.user._id;
   }
-  if (req.query.classRoom) {
+  if (req.user.role === 'admin' && req.query.classRoom) {
   const classExists = await ClassRoom.findOne({
     _id: req.query.classRoom,
     school: req.user.school,

@@ -16,6 +16,14 @@ const assignment = await Assignment.findOne({
     throw new Error('Assignment not found');
   }
 
+  if (
+    !req.user.classRoom ||
+    assignment.classRoom.toString() !== req.user.classRoom.toString()
+  ) {
+    res.status(403);
+    throw new Error('You can only submit assignments for your own class');
+  }
+
 const content = req.body.content?.trim() || "";
 const link = req.body.link?.trim() || "";
 const fileUrl = req.body.fileUrl?.trim() || "";
@@ -138,6 +146,13 @@ if (!assignment) {
   throw new Error("Assignment not found");
 }
 
+if (
+  req.user.role === "teacher" &&
+  assignment.createdBy.toString() !== req.user._id.toString()
+) {
+  res.status(403);
+  throw new Error("You can only grade submissions for your own assignments");
+}
 
   const marks = Number(req.body.marks);
 const feedback = req.body.feedback?.trim() || "";

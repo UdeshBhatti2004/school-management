@@ -32,6 +32,7 @@ export default function AttendanceOverview() {
         <Card><EmptyState icon={CalendarCheck} title="No data" description="No students or attendance records for this class yet." /></Card>
       ) : (
         <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 text-left text-xs font-semibold uppercase tracking-wide text-ink-400">
@@ -59,6 +60,7 @@ export default function AttendanceOverview() {
               ))}
             </tbody>
           </table>
+          </div>
         </Card>
       )}
     </div>

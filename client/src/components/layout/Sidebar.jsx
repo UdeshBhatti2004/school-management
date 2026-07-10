@@ -20,7 +20,9 @@ const handleLogout = () => {
 
   navigate('/login', { replace: true });
 };
-  const items = navByRole[user.role] || [];
+  const items = navByRole[user?.role] || [];
+
+  if (!user) return null;
 
   const content = (
     <div className="flex h-full flex-col">

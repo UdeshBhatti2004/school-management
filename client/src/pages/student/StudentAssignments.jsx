@@ -39,12 +39,6 @@ const [fileName, setFileName] = useState('');
   const handleSubmit = async (e) => {
   e.preventDefault();
 
-  console.log({
-  content,
-  link,
-  fileUrl,
-});
-
 
 const trimmedContent = content.trim();
 

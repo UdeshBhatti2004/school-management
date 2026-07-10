@@ -15,7 +15,9 @@ export const getAssignments = asyncHandler(async (req, res) => {
   } else if (req.user.role === 'teacher') {
     filter.createdBy = req.user._id;
   }
-  if (req.query.classRoom) filter.classRoom = req.query.classRoom;
+  if (req.user.role === 'admin' && req.query.classRoom) {
+    filter.classRoom = req.query.classRoom;
+  }
 
   const assignments = await Assignment.find(filter)
     .populate('classRoom', 'name section')

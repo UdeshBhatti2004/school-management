@@ -19,8 +19,6 @@ export default function TeacherAssignments() {
       refetchOnMountOrArgChange: true,
     });
 
-  console.log("Assignments:", assignments);
-
   const { data: classes } = useGetClassesQuery();
   const [createAssignment] = useCreateAssignmentMutation();
   const [deleteAssignment] = useDeleteAssignmentMutation();
@@ -129,7 +127,6 @@ export default function TeacherAssignments() {
   const handleEdit = (assignment) => {
     setEditingAssignment(assignment);
 
-    console.log("hasSubmissions:", assignment.hasSubmissions);
     setHasSubmissions(assignment.hasSubmissions);
 
     setForm({
@@ -153,11 +150,6 @@ export default function TeacherAssignments() {
       toast.error(getErrMsg(err));
     }
   };
-
-  console.log({
-    editingAssignment,
-    hasSubmissions,
-  });
 
   return (
     <div>

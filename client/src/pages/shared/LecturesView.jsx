@@ -161,9 +161,6 @@ if (editingLecture) {
     }
   };
 
-
-console.log(JSON.stringify(selectedClass, null, 2));
-
   return (
     <div>
       <PageHeader
