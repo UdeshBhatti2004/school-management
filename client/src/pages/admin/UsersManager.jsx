@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState , useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Pencil, Trash2, Search, Mail, Phone } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -21,11 +21,25 @@ const emptyForm = (role) => ({
 });
 
 export default function UsersManager({ role, title, subtitle, icon: Icon }) {
-  // Cached per-role: switching Teachers -> Students -> Teachers reuses the
-  // cache instead of refetching, same as the dashboard.
-  const { data: users, isLoading: loading } = useGetUsersQuery(role, {
-    refetchOnMountOrArgChange: true,
-  });
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
+
+  // Debounce search input so we don't fire a request on every keystroke
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Reset to page 1 whenever the search term or role (tab) changes
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, role]);
+
+  const { data, isLoading: loading } = useGetUsersQuery(
+    { role, page, search: debouncedSearch },
+    { refetchOnMountOrArgChange: true }
+  );
   const { data: classes } = useGetClassesQuery();
   const [createUser] = useCreateUserMutation();
   const [updateUser] = useUpdateUserMutation();
@@ -41,7 +55,6 @@ export default function UsersManager({ role, title, subtitle, icon: Icon }) {
 
   const [viewOpen, setViewOpen] = useState(false);
 
-  const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm(role));
@@ -181,11 +194,13 @@ if (
     }
   };
 
-  const filtered = (users || []).filter(
-    (u) =>
-      u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = data?.users || [];
+  const totalPages = data?.pages || 1;
+  const totalCount = data?.total || 0;
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [totalPages, page]);
 
   return (
     <div>
@@ -359,6 +374,30 @@ if (
 
 
       </Card>
+
+      {!loading && filtered.length > 0 && (
+        <div className="mt-4 flex flex-col items-center justify-between gap-3 sm:flex-row">
+          <p className="text-sm text-ink-500">
+            Page {page} of {totalPages} · {totalCount} {title.toLowerCase()}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
 
       <Modal

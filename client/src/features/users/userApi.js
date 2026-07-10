@@ -3,10 +3,14 @@ import { apiSlice } from '../api/apiSlice';
 export const userApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getUsers: builder.query({
-      query: (role) => `/users?role=${role}`,
-      providesTags: (result, error, role) =>
+      query: ({ role, page = 1, search = '' } = {}) => {
+        const params = new URLSearchParams({ role, page: String(page) });
+        if (search) params.set('search', search);
+        return `/users?${params.toString()}`;
+      },
+      providesTags: (result, error, { role } = {}) =>
         result
-          ? [...result.map((u) => ({ type: 'User', id: u._id })), { type: 'User', id: `LIST-${role}` }]
+          ? [...result.users.map((u) => ({ type: 'User', id: u._id })), { type: 'User', id: `LIST-${role}` }]
           : [{ type: 'User', id: `LIST-${role}` }],
     }),
 

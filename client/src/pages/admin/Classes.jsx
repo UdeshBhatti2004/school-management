@@ -17,10 +17,12 @@ export default function Classes() {
     refetchOnMountOrArgChange: true,
   });
 
-const { data: teachers } =
-  useGetUsersQuery('teacher', {
-    refetchOnMountOrArgChange: true,
-  });
+const { data: teachersData } =
+  useGetUsersQuery(
+    { role: 'teacher', page: 1, limit: 500 },
+    { refetchOnMountOrArgChange: true }
+  );
+const teachers = teachersData?.users || [];
   
   const [createClass] = useCreateClassMutation();
   const [updateClass] = useUpdateClassMutation();

@@ -6,12 +6,12 @@ import Lecture from '../models/Lecture.js';
 import Fee from '../models/Fee.js';
 import Note from '../models/Note.js';
 
-// @route  GET /api/users?role=teacher|student
+// @route  GET /api/users?role=teacher|student&page=1&limit=20&search=
 // @access admin
 export const getUsers = asyncHandler(async (req, res) => {
   const filter = {
-  school: req.user.school,
-};
+    school: req.user.school,
+  };
   if (req.query.role) filter.role = req.query.role;
   if (req.query.search) {
     filter.$or = [
@@ -19,10 +19,25 @@ export const getUsers = asyncHandler(async (req, res) => {
       { email: { $regex: req.query.search, $options: 'i' } },
     ];
   }
-  const users = await User.find(filter)
-    .populate('classRoom', 'name section')
-    .sort({ createdAt: -1 });
-  res.json(users);
+
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const limit = Math.min(500, Math.max(1, parseInt(req.query.limit, 10) || 20));
+
+  const [users, total] = await Promise.all([
+    User.find(filter)
+      .populate('classRoom', 'name section')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit),
+    User.countDocuments(filter),
+  ]);
+
+  res.json({
+    users,
+    page,
+    pages: Math.max(1, Math.ceil(total / limit)),
+    total,
+  });
 });
 
 // @route  GET /api/users/:id

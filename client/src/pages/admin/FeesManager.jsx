@@ -20,9 +20,11 @@ export default function FeesManager() {
   });
   const { data: summary } = useGetFeeSummaryQuery();
   const { data: classes } = useGetClassesQuery();
-  const { data: students } = useGetUsersQuery('student', {
-    refetchOnMountOrArgChange: true,
-  });
+  const { data: studentsData } = useGetUsersQuery(
+    { role: 'student', page: 1, limit: 500 },
+    { refetchOnMountOrArgChange: true }
+  );
+  const students = studentsData?.users || [];
   const [createFee] = useCreateFeeMutation();
   const [recordPaymentMutation] = useRecordPaymentMutation();
   const [deleteFee] = useDeleteFeeMutation();
