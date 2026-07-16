@@ -195,14 +195,14 @@ if (editingLecture) {
   <div className="flex items-center gap-1">
     <button
       onClick={() => openEditModal(l)}
-      className="rounded-lg p-1.5 text-ink-400 hover:bg-brand-50 hover:text-brand-600"
+      className="rounded-lg p-1.5 text-ink-400 hover:bg-brand-50 hover:text-brand-600" title="Edit"
     >
       <Pencil size={14} />
     </button>
 
     <button
       onClick={() => handleDelete(l)}
-      className="rounded-lg p-1.5 text-ink-400 hover:bg-rose-50 hover:text-rose-600"
+      className="rounded-lg p-1.5 text-ink-400 hover:bg-rose-50 hover:text-rose-600" title="Delete"
     >
       <Trash2 size={14} />
     </button>
@@ -277,8 +277,8 @@ if (editingLecture) {
 
               
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+  <div className="sm:col-span-2">
                 <Label>Class</Label>
                 <Select value={form.classRoom} onChange={handleClassChange} required>
                   <option value="">Select class</option>

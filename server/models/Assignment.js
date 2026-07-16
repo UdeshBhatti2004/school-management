@@ -20,5 +20,9 @@ const assignmentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+assignmentSchema.index({ school: 1, classRoom: 1 });
+assignmentSchema.index({ school: 1, createdBy: 1 });
+
+
 const Assignment = mongoose.model('Assignment', assignmentSchema);
 export default Assignment;

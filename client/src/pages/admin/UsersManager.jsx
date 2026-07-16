@@ -312,7 +312,7 @@ if (
                           <button onClick={() => openEdit(u)} className="rounded-lg p-2 text-ink-400 hover:bg-slate-100 hover:text-ink-700" title="Edit">
                             <Pencil size={15} />
                           </button>
-                          <button onClick={() => handleDelete(u)} className="rounded-lg p-2 text-ink-400 hover:bg-rose-50 hover:text-rose-600" title="Remove">
+                          <button onClick={() => handleDelete(u)} className="rounded-lg p-2 text-ink-400 hover:bg-rose-50 hover:text-rose-600" title="Delete">
                             <Trash2 size={15} />
                           </button>
                         </div>
@@ -327,19 +327,22 @@ if (
                 <button
                   key={u._id}
                   className="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-slate-50"
-                  onClick={() => setSelectedUser(u)}
+                  onClick={() => {
+                    setSelectedUser(u);
+                    setViewOpen(true);
+                  }}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 font-semibold text-ink-700">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-200 font-semibold text-ink-700">
                       {u.name?.[0]?.toUpperCase()}
                     </div>
 
-                    <div>
-                      <p className="font-medium text-ink-800">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-ink-800">
                         {u.name}
                       </p>
 
-                      <p className="text-sm text-ink-500">
+                      <p className="truncate text-sm text-ink-500">
                         {role === "teacher"
                           ? u.department || "No Department"
                           : u.classRoom
@@ -349,7 +352,7 @@ if (
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex shrink-0 items-center gap-2 pl-2">
                     <Badge tone={u.isActive ? "green" : "rose"}>
                       {u.isActive ? "Active" : "Inactive"}
                     </Badge>
@@ -357,10 +360,6 @@ if (
                     <ChevronRight
                       size={18}
                       className="text-slate-400"
-                      onClick={() => {
-                        setSelectedUser(u);
-                        setViewOpen(true);
-                      }}
                     />
 
                   </div>
@@ -578,9 +577,9 @@ if (
 
               <div className="divide-y divide-slate-100 rounded-lg border border-slate-100">
 
-                <div className="flex items-center justify-between px-4 py-2.5">
-                  <span className="text-xs text-slate-500">Phone</span>
-                  <span className="text-sm font-medium">
+                <div className="flex items-center justify-between gap-4 px-4 py-2.5">
+                  <span className="text-xs text-slate-500 shrink-0">Phone</span>
+                  <span className="text-sm font-medium text-right truncate max-w-[70%]">
                     {selectedUser.phone || "—"}
                   </span>
                 </div>
@@ -596,32 +595,32 @@ if (
 
                 <div className="divide-y divide-slate-100 rounded-lg border border-slate-100">
 
-                  <div className="flex items-center justify-between px-4 py-2.5">
-                    <span className="text-xs text-slate-500">
+                  <div className="flex items-center justify-between gap-4 px-4 py-2.5">
+                    <span className="text-xs text-slate-500 shrink-0">
                       Employee ID
                     </span>
 
-                    <span className="text-sm font-medium">
+                    <span className="text-sm font-medium text-right truncate max-w-[70%]">
                       {selectedUser.employeeId || "—"}
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between px-4 py-2.5">
-                    <span className="text-xs text-slate-500">
+                  <div className="flex items-center justify-between gap-4 px-4 py-2.5">
+                    <span className="text-xs text-slate-500 shrink-0">
                       Department
                     </span>
 
-                    <span className="text-sm font-medium">
+                    <span className="text-sm font-medium text-right truncate max-w-[70%]">
                       {selectedUser.department || "—"}
                     </span>
                   </div>
 
-                  <div className="flex items-start justify-between px-4 py-2.5">
-                    <span className="text-xs text-slate-500">
+                  <div className="flex items-start justify-between gap-4 px-4 py-2.5">
+                    <span className="text-xs text-slate-500 shrink-0">
                       Subjects
                     </span>
 
-                    <div className="flex max-w-[60%] flex-wrap justify-end gap-1">
+                    <div className="flex max-w-[70%] flex-wrap justify-end gap-1">
                       {selectedUser.subjects?.length ? (
                         selectedUser.subjects.map((subject) => (
                           <Badge
@@ -648,44 +647,44 @@ if (
 
                 <div className="divide-y divide-slate-100 rounded-lg border border-slate-100">
 
-                  <div className="flex items-center justify-between px-4 py-2.5">
-                    <span className="text-xs text-slate-500">
+                  <div className="flex items-center justify-between gap-4 px-4 py-2.5">
+                    <span className="text-xs text-slate-500 shrink-0">
                       Roll Number
                     </span>
 
-                    <span className="text-sm font-medium">
+                    <span className="text-sm font-medium text-right truncate max-w-[70%]">
                       {selectedUser.rollNumber || "—"}
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between px-4 py-2.5">
-                    <span className="text-xs text-slate-500">
+                  <div className="flex items-center justify-between gap-4 px-4 py-2.5">
+                    <span className="text-xs text-slate-500 shrink-0">
                       Class
                     </span>
 
-                    <span className="text-sm font-medium">
+                    <span className="text-sm font-medium text-right truncate max-w-[70%]">
                       {selectedUser.classRoom
                         ? `${selectedUser.classRoom.name} · ${selectedUser.classRoom.section}`
                         : "—"}
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between px-4 py-2.5">
-                    <span className="text-xs text-slate-500">
+                  <div className="flex items-center justify-between gap-4 px-4 py-2.5">
+                    <span className="text-xs text-slate-500 shrink-0">
                       Guardian
                     </span>
 
-                    <span className="text-sm font-medium">
+                    <span className="text-sm font-medium text-right truncate max-w-[70%]">
                       {selectedUser.guardianName || "—"}
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between px-4 py-2.5">
-                    <span className="text-xs text-slate-500">
+                  <div className="flex items-center justify-between gap-4 px-4 py-2.5">
+                    <span className="text-xs text-slate-500 shrink-0">
                       Guardian Phone
                     </span>
 
-                    <span className="text-sm font-medium">
+                    <span className="text-sm font-medium text-right truncate max-w-[70%]">
                       {selectedUser.guardianPhone || "—"}
                     </span>
                   </div>

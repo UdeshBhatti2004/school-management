@@ -145,7 +145,7 @@ export default function FeesManager() {
       <PageHeader title="Fees" subtitle="Issue fees, record payments, and track collection."
         action={<Button onClick={() => setOpen(true)}><Plus size={16} /> Issue fee</Button>} />
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={TrendingUp} label="Billed" value={inr(summary?.totalBilled)} tone="brand" index={0} />
         <StatCard icon={CheckCircle2} label="Collected" value={inr(summary?.totalCollected)} tone="emerald" index={1} />
         <StatCard icon={Clock} label="Outstanding" value={inr(summary?.outstanding)} tone="amber" index={2} />
@@ -251,22 +251,22 @@ export default function FeesManager() {
                     setViewOpen(true);
                   }}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 font-semibold text-ink-700">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-200 font-semibold text-ink-700">
                       {f.student?.name?.[0]?.toUpperCase() || <Wallet size={16} />}
                     </div>
 
-                    <div>
-                      <p className="font-medium text-ink-800">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-ink-800">
                         {f.student?.name || 'Unknown Student'}
                       </p>
-                      <p className="text-xs text-ink-400 font-normal">
+                      <p className="truncate text-xs text-ink-400 font-normal">
                         {f.title} · <span className="font-medium text-ink-700">{inr(f.amount)}</span>
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex shrink-0 items-center gap-2 pl-2">
                     <Badge tone={statusTone[f.status]} className="capitalize">
                       {f.status}
                     </Badge>
@@ -314,7 +314,7 @@ export default function FeesManager() {
             <Label>Title</Label>
             <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Term 1 Tuition" required />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label>Amount (₹)</Label>
               <Input type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required />

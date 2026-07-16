@@ -36,7 +36,7 @@ export default function TeacherDashboard() {
       {loading ? (
         <div className="flex justify-center py-16"><Spinner className="h-6 w-6" /></div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Link to="/app/assignments"><StatCard icon={FileText} label="Assignments" value={assignments?.length ?? 0} tone="brand" index={0} /></Link>
           <Link to="/app/lectures"><StatCard icon={Video} label="Lectures" value={lectures?.length ?? 0} tone="sky" index={1} /></Link>
           <Link to="/app/announcements"><StatCard icon={Megaphone} label="Announcements" value={announcements?.length ?? 0} tone="amber" index={2} /></Link>

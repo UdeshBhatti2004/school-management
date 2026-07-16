@@ -22,6 +22,9 @@ const classRoomSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+classRoomSchema.index({ school: 1 });
+
+
 classRoomSchema.virtual('label').get(function () {
   return `${this.name} - ${this.section}`;
 });

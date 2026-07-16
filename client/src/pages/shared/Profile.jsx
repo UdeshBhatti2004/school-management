@@ -104,7 +104,11 @@ const [showNewPassword, setShowNewPassword] = useState(false);
               <>
                 <div className="flex justify-between text-sm">
                   <span className="text-ink-500">Class</span>
-                  <span className="font-medium text-ink-900">{user.classRoom?.label || 'Not Assigned'}</span>
+                  <span className="font-medium text-ink-900">
+                    {user.classRoom
+                      ? `${user.classRoom.name} · ${user.classRoom.section}`
+                      : 'Not Assigned'}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-ink-500">Roll No.</span>

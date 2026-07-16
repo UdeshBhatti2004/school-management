@@ -212,18 +212,13 @@ export default function TeacherAssignments() {
                     </div>
                   </div>
                   <div className="flex shrink-0 gap-2">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => handleEdit(a)}
-                    >
-                      <Pencil size={15} />
-                      Edit
-                    </Button>
+                    <button onClick={() => handleEdit(a)} className="rounded-lg p-2 text-ink-400 hover:bg-slate-100 hover:text-ink-700" title="Edit">
+                      <Pencil size={16} />
+                    </button>
                     <Button variant="secondary" size="sm" onClick={() => setActive(a)}>
                       <ClipboardCheck size={15} /> Submissions
                     </Button>
-                    <button onClick={() => handleDelete(a)} className="rounded-lg p-2 text-ink-400 hover:bg-rose-50 hover:text-rose-600"><Trash2 size={16} /></button>
+                    <button onClick={() => handleDelete(a)} className="rounded-lg p-2 text-ink-400 hover:bg-rose-50 hover:text-rose-600" title="Delete"><Trash2 size={16} /></button>
                   </div>
                 </Card>
               </motion.div>
@@ -272,7 +267,7 @@ export default function TeacherAssignments() {
             <Label>Instructions</Label>
             <Textarea rows={3} value={form.description} onChange={set('description')} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label>Class</Label>
               <Select

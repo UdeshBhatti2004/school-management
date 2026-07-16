@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { GraduationCap, LogOut, X } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { navByRole, roleLabels } from '../../lib/nav';
 import { cn } from '../../lib/cn';
 import { useDispatch, useSelector } from 'react-redux';
@@ -117,7 +117,6 @@ const handleLogout = () => {
           <motion.aside
             initial={{ x: -280 }}
             animate={{ x: 0 }}
-            exit={{ x: -280 }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             className="absolute left-0 top-0 h-full w-64 bg-white shadow-pop"
           >

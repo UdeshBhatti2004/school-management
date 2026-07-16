@@ -161,14 +161,14 @@ if (
   <div className="flex gap-2">
     <button
       onClick={() => handleEdit(n)}
-      className="rounded-lg p-1.5 text-ink-400 hover:bg-brand-50 hover:text-brand-600"
+      className="rounded-lg p-1.5 text-ink-400 hover:bg-brand-50 hover:text-brand-600" title="Edit"
     >
       <Pencil size={14} />
     </button>
 
     <button
       onClick={() => remove(n)}
-      className="rounded-lg p-1.5 text-ink-400 hover:bg-rose-50 hover:text-rose-600"
+      className="rounded-lg p-1.5 text-ink-400 hover:bg-rose-50 hover:text-rose-600" title="Delete"
     >
       <Trash2 size={14} />
     </button>
@@ -225,7 +225,7 @@ if (
   {form.description.length}/3000
 </p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" >
               <div>
                 <Label>Class</Label>
                 <Select value={form.classRoom}  disabled={!!editingNote} onChange={(e) => setForm({ ...form, classRoom: e.target.value })} required>

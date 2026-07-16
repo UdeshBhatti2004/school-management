@@ -40,7 +40,7 @@ export default function AdminDashboard() {
       {loading ? (
         <div className="flex justify-center py-16"><Spinner className="h-6 w-6" /></div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
           {cards.map((c, i) => (
             <Link key={c.label} to={c.to}>
               <StatCard icon={c.icon} label={c.label} value={c.value} tone={c.tone} index={i} />

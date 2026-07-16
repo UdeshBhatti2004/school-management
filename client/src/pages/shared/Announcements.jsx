@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Megaphone, Trash2 } from 'lucide-react';
+import { Plus, Megaphone, Trash2, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useGetAnnouncementsQuery, useCreateAnnouncementMutation ,useUpdateAnnouncementMutation, useDeleteAnnouncementMutation } from '../../features/announcements/announcementApi';
 import { useGetClassesQuery } from '../../features/classes/classApi';
@@ -203,19 +203,11 @@ setForm(emptyForm);
                     </p>
                   </div>
                   {(user?.role === 'admin' || a.createdBy?._id === user?._id) && (
-                    <div className="flex shrink-0 gap-2">
-  <Button
-    variant="secondary"
-    size="sm"
-    onClick={() => handleEdit(a)}
-  >
-    Edit
-  </Button>
-
-  <button
-    onClick={() => handleDelete(a)}
-    className="rounded-lg p-2 text-ink-400 hover:bg-rose-50 hover:text-rose-600"
-  >
+        <div className="flex shrink-0 gap-1">
+  <button onClick={() => handleEdit(a)} className="rounded-lg p-2 text-ink-400 hover:bg-slate-100 hover:text-ink-700" title="Edit">
+    <Pencil size={16} />
+  </button>
+  <button onClick={() => handleDelete(a)} className="rounded-lg p-2 text-ink-400 hover:bg-rose-50 hover:text-rose-600" title="Delete">
     <Trash2 size={16} />
   </button>
 </div>
@@ -273,7 +265,7 @@ setForm(emptyForm);
             <Label>Message</Label>
             <Textarea rows={4} value={form.body} onChange={set('body')} required />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
   <div>
     <Label>Audience</Label>
     <Select value={form.audience} onChange={set("audience")}>

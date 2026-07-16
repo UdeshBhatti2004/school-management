@@ -11,8 +11,6 @@ import { getErrMsg } from '../../lib/getErrMsg';
 import { useSelector } from "react-redux";
 import { selectCurrentUser } from "../../features/auth/authSlice";
 
-
-
 const STATUSES = [
   { key: 'present', label: 'Present', icon: Check, tone: 'bg-emerald-600' },
   { key: 'late', label: 'Late', icon: Clock, tone: 'bg-amber-500' },
@@ -28,79 +26,49 @@ export default function TakeAttendance() {
   const [marks, setMarks] = useState({});
   const [saving, setSaving] = useState(false);
 
-
   const user = useSelector(selectCurrentUser);
 
-  // Roster comes from the class detail endpoint (separate cache entry, kept
-  // warm across date/subject changes within the same class).
   const [fetchClass, { data: classDetail, isFetching: rosterLoading }] = useLazyGetClassByIdQuery();
   const students = classDetail?.students;
 
+  const filteredClasses = useMemo(() => {
+    if (!classes) return [];
+    if (user?.role === "admin") return classes;
+    return classes.filter((c) => c.classTeacher?._id === user?._id);
+  }, [classes, user]);
 
-
-const filteredClasses = useMemo(() => {
-  if (!classes) return [];
-
-  if (user?.role === "admin") {
-  return classes;
-}
-
-return classes.filter(
-  (c) => c.classTeacher?._id === user?._id
-);
-}, [classes, user]);
-
-
-useEffect(() => {
-  if (
-    user?.role === "teacher" &&
-    filteredClasses.length === 1 &&
-    !classId
-  ) {
-    setClassId(filteredClasses[0]._id);
-  }
-}, [user, filteredClasses, classId]);
-
-  // Existing attendance sheet for this class+date — refetches automatically
-  // whenever classId or date change because they're part of the query arg.
-  const { data: existingSheet, isFetching: sheetLoading } =
-  useGetAttendanceQuery(
-    { classRoom: classId, date },
-    {
-      skip: !classId,
-      refetchOnMountOrArgChange: true,
+  useEffect(() => {
+    if (user?.role === "teacher" && filteredClasses.length === 1 && !classId) {
+      setClassId(filteredClasses[0]._id);
     }
+  }, [user, filteredClasses, classId]);
+
+  const { data: existingSheet, isFetching: sheetLoading } = useGetAttendanceQuery(
+    { classRoom: classId, date },
+    { skip: !classId, refetchOnMountOrArgChange: true }
   );
+  
   const [markAttendance] = useMarkAttendanceMutation();
 
   useEffect(() => {
-  if (classId) {
-    fetchClass(classId);
-  }
-}, [classId, fetchClass]);
+    if (classId) {
+      fetchClass(classId);
+    }
+  }, [classId, fetchClass]);
 
-  // Seed the per-student status map whenever the roster or the existing
-  // sheet for this subject changes.
   useEffect(() => {
-  if (!students?.length) {
-    setMarks({});
-    return;
-  }
-
-  const existing = existingSheet?.[0];
-
-  const init = {};
-
-  students.forEach((s) => {
-    const rec = existing?.records?.find(
-      (r) => (r.student._id || r.student) === s._id
-    );
-
-    init[s._id] = rec?.status || "present";
-  });
-
-  setMarks(init);
-}, [students, existingSheet]);
+    if (!students?.length) {
+      setMarks({});
+      return;
+    }
+    const existing = existingSheet?.[0];
+    const init = {};
+    students.forEach((s) => {
+      const rec = existing?.records?.find((r) => (r.student._id || r.student) === s._id);
+      init[s._id] = rec?.status || "present";
+    });
+    setMarks(init);
+  }, [students, existingSheet]);
 
   const loading = Boolean(classId) && (rosterLoading || sheetLoading);
 
@@ -115,11 +83,7 @@ useEffect(() => {
     setSaving(true);
     try {
       const records = students.map((s) => ({ student: s._id, status: marks[s._id] || 'present' }));
-      await markAttendance({
-  classRoom: classId,
-  date,
-  records,
-}).unwrap();
+      await markAttendance({ classRoom: classId, date, records }).unwrap();
       toast.success('Attendance saved');
     } catch (err) {
       toast.error(getErrMsg(err));
@@ -129,26 +93,17 @@ useEffect(() => {
   };
 
   const counts = useMemo(() => {
-  if (!students?.length) {
-    return {
-      present: 0,
-      late: 0,
-      absent: 0,
-    };
-  }
-
-  return students.reduce(
-    (acc, s) => {
-      acc[marks[s._id] || "present"] += 1;
-      return acc;
-    },
-    {
-      present: 0,
-      late: 0,
-      absent: 0,
+    if (!students?.length) {
+      return { present: 0, late: 0, absent: 0 };
     }
-  );
-}, [students, marks]);
+    return students.reduce(
+      (acc, s) => {
+        acc[marks[s._id] || "present"] += 1;
+        return acc;
+      },
+      { present: 0, late: 0, absent: 0 }
+    );
+  }, [students, marks]);
 
   return (
     <div>
@@ -161,10 +116,10 @@ useEffect(() => {
             <Select value={classId} onChange={(e) => setClassId(e.target.value)}>
               <option value="">Select a class</option>
               {filteredClasses.map((c) => (
-  <option key={c._id} value={c._id}>
-    {c.name} · {c.section}
-  </option>
-))}
+                <option key={c._id} value={c._id}>
+                  {c.name} · {c.section}
+                </option>
+              ))}
             </Select>
           </div>
           <div>
@@ -179,14 +134,8 @@ useEffect(() => {
       ) : loading ? (
         <div className="flex justify-center py-16"><Spinner className="h-6 w-6" /></div>
       ) : !students?.length ? (
-  <Card>
-    <EmptyState
-      icon={CalendarCheck}
-      title="No students"
-      description="This class has no students assigned yet."
-    />
-  </Card>
-) : (
+        <Card><EmptyState icon={CalendarCheck} title="No students" description="This class has no students assigned yet." /></Card>
+      ) : (
         <>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex gap-2">
@@ -209,16 +158,21 @@ useEffect(() => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.2, delay: Math.min(i * 0.02, 0.2) }}
-                className="flex items-center gap-3 px-5 py-3"
+                className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5"
               >
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-ink-700">
-                  {s.name?.[0]?.toUpperCase()}
+                {/* Wrapped Left Hand Side Identity Section */}
+                <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-ink-700">
+                    {s.name?.[0]?.toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-ink-800">{s.name}</p>
+                    {s.rollNumber && <p className="truncate text-xs text-ink-400">{s.rollNumber}</p>}
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-ink-800">{s.name}</p>
-                  {s.rollNumber && <p className="text-xs text-ink-400">{s.rollNumber}</p>}
-                </div>
-                <div className="flex gap-1.5">
+
+                {/* Right Hand Side Controls */}
+                <div className="flex gap-1 shrink-0 sm:gap-1.5">
                   {STATUSES.map((st) => {
                     const active = (marks[s._id] || 'present') === st.key;
                     return (
@@ -226,11 +180,12 @@ useEffect(() => {
                         key={st.key}
                         onClick={() => setStatus(s._id, st.key)}
                         className={cn(
-                          'flex h-8 items-center gap-1 rounded-lg px-2.5 text-xs font-medium transition-colors',
+                          'flex h-8 items-center justify-center gap-1 rounded-lg px-2 text-xs font-medium transition-colors sm:px-2.5',
                           active ? `${st.tone} text-white` : 'bg-slate-100 text-ink-500 hover:bg-slate-200'
                         )}
                       >
-                        <st.icon size={13} /> <span className="hidden sm:inline">{st.label}</span>
+                        <st.icon size={13} className="shrink-0" />
+                        <span className="hidden sm:inline">{st.label}</span>
                       </button>
                     );
                   })}

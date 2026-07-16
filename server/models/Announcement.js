@@ -30,5 +30,8 @@ attachmentName: {
   { timestamps: true }
 );
 
+announcementSchema.index({ school: 1, createdAt: -1 });
+
+
 const Announcement = mongoose.model('Announcement', announcementSchema);
 export default Announcement;

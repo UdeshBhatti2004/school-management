@@ -183,19 +183,19 @@ section: form.section.trim(),
               transition={{ duration: 0.25, delay: Math.min(i * 0.04, 0.3) }}
             >
               <Card className="flex h-full flex-col p-5">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
                       <School size={20} />
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-ink-900">{c.name}</h3>
-                      <p className="text-sm text-ink-400">Section {c.section}</p>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate font-semibold text-ink-900">{c.name}</h3>
+                      <p className="truncate text-sm text-ink-400">Section {c.section}</p>
                     </div>
                   </div>
-                  <div className="flex gap-1">
-                    <button onClick={() => openEdit(c)} className="rounded-lg p-1.5 text-ink-400 hover:bg-slate-100 hover:text-ink-700"><Pencil size={14} /></button>
-                    <button onClick={() => handleDelete(c)} className="rounded-lg p-1.5 text-ink-400 hover:bg-rose-50 hover:text-rose-600"><Trash2 size={14} /></button>
+                  <div className="flex shrink-0 gap-1">
+                    <button onClick={() => openEdit(c)} className="rounded-lg p-1.5 text-ink-400 hover:bg-slate-100 hover:text-ink-700" title="Edit"><Pencil size={14} /></button>
+                    <button onClick={() => handleDelete(c)} className="rounded-lg p-1.5 text-ink-400 hover:bg-rose-50 hover:text-rose-600" title="Delete"><Trash2 size={14} /></button>
                   </div>
                 </div>
 
@@ -243,7 +243,7 @@ section: form.section.trim(),
         }
       >
         <form onSubmit={handleSave} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label>Class name</Label>
               <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Grade 10" required />

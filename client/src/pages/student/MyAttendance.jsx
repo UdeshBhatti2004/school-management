@@ -21,7 +21,7 @@ export default function MyAttendance() {
         <Card><EmptyState icon={CalendarCheck} title="No attendance yet" description="Your attendance will appear once teachers start marking it." /></Card>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard icon={CalendarCheck} label="Attendance" value={`${summary.percent}%`} tone="brand" index={0} />
             <StatCard icon={Check} label="Present" value={summary.present} tone="emerald" index={1} />
             <StatCard icon={Clock} label="Late" value={summary.late} tone="amber" index={2} />

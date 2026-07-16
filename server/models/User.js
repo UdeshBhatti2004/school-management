@@ -71,6 +71,9 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+userSchema.index({ school: 1, role: 1 });
+
+
 // Hash password before save when modified
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
@@ -82,6 +85,8 @@ userSchema.pre('save', async function (next) {
 userSchema.methods.matchPassword = async function (entered) {
   return bcrypt.compare(entered, this.password);
 };
+
+
 
 const User = mongoose.model('User', userSchema);
 export default User;
