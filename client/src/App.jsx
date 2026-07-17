@@ -10,6 +10,7 @@ import { Spinner } from './components/ui/primitives';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import SocketProvider from './components/SocketProvider';
+import SchoolAccess from "./pages/SchoolAccess";
 
 // Route-level code splitting: each dashboard page becomes its own chunk,
 // loaded only when a user with that role actually navigates to it.
@@ -69,6 +70,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+             <Route path="/school-access" element={<SchoolAccess />} />
 
           <Route
             path="/app"

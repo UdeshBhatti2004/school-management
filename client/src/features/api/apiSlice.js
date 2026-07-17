@@ -30,6 +30,29 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
   }
 }
 
+if (result.error?.status === 403) {
+  const { code, message } = result.error?.data || {};
+
+  if (
+    code === "TRIAL_EXPIRED" ||
+    code === "SCHOOL_DEACTIVATED"
+  ) {
+    api.dispatch(logout());
+
+  sessionStorage.setItem(
+  "schoolAccessError",
+  JSON.stringify({
+    code,
+    message,
+  })
+);
+
+api.dispatch(logout());
+
+window.location.href = "/school-access";
+  }
+}
+
   return result;
 };
 

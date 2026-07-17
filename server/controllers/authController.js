@@ -5,6 +5,8 @@ import generateToken from '../utils/generateToken.js';
 import mongoose from 'mongoose';
 
 
+const TRIAL_DAYS = 30;
+
 const sanitize = (user) => ({
   _id: user._id,
   name: user.name,
@@ -71,16 +73,19 @@ export const register = asyncHandler(async (req, res) => {
 
     // Create School
     const [newSchool] = await School.create(
-      [
-        {
-          name: school.name,
-          email: school.email.toLowerCase(),
-          phone: school.phone,
-          address: school.address,
-        },
-      ],
-      { session }
-    );
+  [
+    {
+      name: school.name,
+      email: school.email.toLowerCase(),
+      phone: school.phone,
+      address: school.address,
+      trialEndsAt: new Date(
+        Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000
+      ),
+    },
+  ],
+  { session }
+);
 
     // Create First Admin
     const [newAdmin] = await User.create(

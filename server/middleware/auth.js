@@ -16,16 +16,47 @@ export const protect = asyncHandler(async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id);
-    if (!req.user || !req.user.isActive) {
-      res.status(401);
-      throw new Error('Account not found or deactivated');
-    }
+req.user = await User.findById(decoded.id).populate("school");
+
+
+if (!req.user || !req.user.isActive) {
+  res.status(401);
+  throw new Error("Account not found or deactivated");
+}
+
+const school = req.user.school;
+
+
+if (!school) {
+  res.status(404);
+  throw new Error("School not found");
+}
+
+if (!school.isActive) {
+  return res.status(403).json({
+    code: "SCHOOL_DEACTIVATED",
+    message: "Your school's account has been deactivated. Please contact Scholora.",
+  });
+}
+
+if (
+  school.subscription === "trial" &&
+  school.trialEndsAt &&
+  new Date() > school.trialEndsAt
+) {
+  return res.status(403).json({
+    code: "TRIAL_EXPIRED",
+    message: "Your school's trial period has expired. Please contact Scholora.",
+  });
+}
     next();
   } catch (error) {
+  if (res.statusCode === 200) {
     res.status(401);
-    throw new Error('Not authorized, token failed');
   }
+
+  throw error;
+}
 });
 
 // Restrict route to specific roles, e.g. authorize('admin', 'teacher')

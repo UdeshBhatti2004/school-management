@@ -68,6 +68,12 @@ const schoolSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+trialEndsAt: {
+    type: Date,
+    default: null,
+},
+
   },
   {
     timestamps: true,
